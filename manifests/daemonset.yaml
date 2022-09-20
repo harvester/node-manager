@@ -1,0 +1,62 @@
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: harvester-node-manager
+  namespace: harvester-system
+  labels:
+    app.kubernetes.io/name: harvester-node-manager
+    app.kubernetes.io/component: node-manager
+    app.kubernetes.io/version: 0.1.0
+spec:
+  selector:
+    matchLabels:
+      name: harvester-node-manager
+  template:
+    metadata:
+      labels:
+        name: harvester-node-manager
+    spec:
+      tolerations:
+        # this toleration is to have the daemonset runnable on master nodes
+        # remove it if your masters can't run pods
+        - key: node-role.kubernetes.io/master
+          effect: NoSchedule
+      serviceAccountName: harvester-node-manager
+      containers:
+        - env:
+            - name: NODENAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: HOST_PROC
+              value: /host/proc
+          name: node-manager
+          image: rancher/harvester-node-manager:master-head
+          imagePullPolicy: Always
+          command:
+            - harvester-node-manager
+          securityContext:
+            privileged: true
+          resources:
+            limits:
+              cpu: 100m
+              memory: 128Mi
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          volumeMounts:
+            - mountPath: /sys/kernel/mm/ksm
+              name: ksm
+              readOnly: false
+            - mountPath: /host/proc
+              name: proc
+              readOnly: true
+      volumes:
+        - name: ksm
+          hostPath:
+            path: /sys/kernel/mm/ksm
+        - name: proc
+          hostPath:
+            path: /proc
