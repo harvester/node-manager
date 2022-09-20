@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: harvester-node-manager
+    app.kubernetes.io/component: node-manager
+    app.kubernetes.io/version: 0.1.0
+  name: harvester-node-manager
+  namespace: harvester-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: harvester-node-manager
+rules:
+  - apiGroups: [ "node.harvesterhci.io" ]
+    resources: [ "ksmtuneds", "ksmtuneds/status" ]
+    verbs: [ "*" ]
+  - apiGroups: [ "" ]
+    resources: [ "nodes" ]
+    verbs: [ "get", "watch", "list", "update" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: harvester-node-manager
+    app.kubernetes.io/component: node-manager
+    app.kubernetes.io/version: 0.1.0
+  name: harvester-node-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: harvester-node-manager
+subjects:
+  - kind: ServiceAccount
+    name: harvester-node-manager
+    namespace: harvester-system
