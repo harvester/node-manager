@@ -23,8 +23,10 @@ const (
 var (
 	ksmReg = regexp.MustCompile(`\d+`)
 
-	once sync.Once
+	mergeAcrossNodesLocker sync.Mutex
+
 	// single instance
+	once     sync.Once
 	instance *Ksmtuned
 )
 
@@ -256,6 +258,31 @@ func (k *Ksmtuned) RunStatus() (ksmtunedv1.KsmdPhase, error) {
 		phase = ksmtunedv1.KsmdPruned
 	}
 	return phase, nil
+}
+
+// CompareMergeAcrossNodes compare Ksmtuned configure and /sys/kernel/mm/ksm/merge_across_nodes
+func (k Ksmtuned) compareMergeAcrossNodes(toggle uint) (unchanged bool, err error) {
+	s, err := k.ksmd.getMergeAcrossNodes()
+	if err != nil {
+		return false, err
+	}
+
+	if s == uint64(toggle) {
+		return true, nil
+	}
+	return false, nil
+}
+
+// ToggleMergeAcrossNodes toggle /sys/kernel/mm/ksm/merge_across_nodes
+func (k Ksmtuned) ToggleMergeAcrossNodes(toggle uint) error {
+	mergeAcrossNodesLocker.Lock()
+	defer mergeAcrossNodesLocker.Unlock()
+	if unchanged, err := k.compareMergeAcrossNodes(toggle); err != nil {
+		return err
+	} else if unchanged {
+		return nil
+	}
+	return k.ksmd.toggleMergeAcrossNodes(toggle)
 }
 
 func totalMemory() (uint64, error) {

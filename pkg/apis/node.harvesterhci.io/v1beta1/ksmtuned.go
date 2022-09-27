@@ -70,6 +70,9 @@ type KsmtunedSpec struct {
 	// +kubebuilder:default=20
 	ThresCoef uint `json:"thresCoef"`
 
+	// +kubebuilder:validation:Maximum=1
+	MergeAcrossNodes uint `json:"mergeAcrossNodes"`
+
 	KsmtunedParameters KsmtunedParameters `json:"ksmtunedParameters"`
 }
 

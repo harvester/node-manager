@@ -63,6 +63,9 @@ spec:
                 - minPages
                 - sleepMsec
                 type: object
+              mergeAcrossNodes:
+                maximum: 1
+                type: integer
               mode:
                 default: standard
                 description: KsmtunedMode defines the mode used by ksmtuned
@@ -85,6 +88,7 @@ spec:
                 type: integer
             required:
             - ksmtunedParameters
+            - mergeAcrossNodes
             - mode
             - run
             - thresCoef
