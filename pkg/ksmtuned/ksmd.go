@@ -9,7 +9,6 @@ import (
 
 	"github.com/shirou/gopsutil/v3/process"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -75,8 +74,6 @@ type (
 	}
 )
 
-var eg errgroup.Group
-
 func newKsmd() (*ksmd, error) {
 	p, err := getKsmd()
 	if err != nil {
@@ -87,24 +84,10 @@ func newKsmd() (*ksmd, error) {
 		proc: p,
 	}
 
-	// by default, merge_across_nodes is disable
-	eg.Go(func() error {
-		return k.disableMergeAcrossNodes()
-	})
-	if err := eg.Wait(); err != nil {
-		return nil, fmt.Errorf("failed to disable merge across nodes: %s", err)
-	}
-
 	return k, nil
 }
 
-func (k *ksmd) disableMergeAcrossNodes() (err error) {
-
-	if r, err := readKsmPath(MergeAcrossNodes); err != nil {
-		return err
-	} else if r == 0 {
-		return nil
-	}
+func (k *ksmd) toggleMergeAcrossNodes(toggle uint) (err error) {
 
 	if err = k.prune(0); err != nil {
 		return err
@@ -124,7 +107,9 @@ func (k *ksmd) disableMergeAcrossNodes() (err error) {
 		return err
 	}
 
-	return saveKsmPath(MergeAcrossNodes, []byte("0"))
+	s := strconv.FormatUint(uint64(toggle), 10)
+
+	return saveKsmPath(MergeAcrossNodes, []byte(s))
 }
 
 func (k *ksmd) start(pagesToScan uint, sleepMsec uint64) error {
@@ -217,6 +202,10 @@ func getKsmd() (*process.Process, error) {
 		}
 	}
 	return nil, fmt.Errorf("not found ksmd program")
+}
+
+func (k *ksmd) getMergeAcrossNodes() (uint64, error) {
+	return readKsmPath(MergeAcrossNodes)
 }
 
 func saveKsmPath(p ksmPath, b []byte) error {

@@ -82,6 +82,11 @@ func (c *Controller) OnChange(key string, kt *ksmtunedv1.Ksmtuned) (*ksmtunedv1.
 		return kt, nil
 	}
 
+	// process merge across nodes changed
+	if err := c.Ksmtuned.ToggleMergeAcrossNodes(kt.Spec.MergeAcrossNodes); err != nil {
+		return kt, err
+	}
+
 	var (
 		parameters ksmtunedv1.KsmtunedParameters
 		ok         bool
