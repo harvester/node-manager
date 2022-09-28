@@ -87,13 +87,13 @@ func newKsmd() (*ksmd, error) {
 	return k, nil
 }
 
-func (k *ksmd) toggleMergeAcrossNodes(toggle uint) (err error) {
+func (k *ksmd) toggleMergeAcrossNodes(ctx context.Context, toggle uint) (err error) {
 
 	if err = k.prune(0); err != nil {
 		return err
 	}
 
-	ctxCancel, cancel := context.WithCancel(context.Background())
+	ctxCancel, cancel := context.WithCancel(ctx)
 	wait.UntilWithContext(ctxCancel, func(ctx context.Context) {
 		var s *ksmdStatus
 		s, err = k.readKsmdStatus()
