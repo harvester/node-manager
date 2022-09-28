@@ -282,7 +282,7 @@ func (k Ksmtuned) ToggleMergeAcrossNodes(toggle uint) error {
 	} else if unchanged {
 		return nil
 	}
-	return k.ksmd.toggleMergeAcrossNodes(toggle)
+	return k.ksmd.toggleMergeAcrossNodes(k.ctx, toggle)
 }
 
 func totalMemory() (uint64, error) {
