@@ -32,6 +32,10 @@ func (c *FakeNodeV1beta1) Ksmtuneds() v1beta1.KsmtunedInterface {
 	return &FakeKsmtuneds{c}
 }
 
+func (c *FakeNodeV1beta1) NodeConfigs(namespace string) v1beta1.NodeConfigInterface {
+	return &FakeNodeConfigs{c, namespace}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakeNodeV1beta1) RESTClient() rest.Interface {

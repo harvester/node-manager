@@ -40,3 +40,20 @@ func NewKsmtuned(namespace, name string, obj Ksmtuned) *Ksmtuned {
 	obj.Namespace = namespace
 	return &obj
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// NodeConfigList is a list of NodeConfig resources
+type NodeConfigList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []NodeConfig `json:"items"`
+}
+
+func NewNodeConfig(namespace, name string, obj NodeConfig) *NodeConfig {
+	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("NodeConfig").ToAPIVersionAndKind()
+	obj.Name = name
+	obj.Namespace = namespace
+	return &obj
+}

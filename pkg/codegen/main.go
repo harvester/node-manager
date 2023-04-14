@@ -6,7 +6,7 @@ import (
 	controllergen "github.com/rancher/wrangler/pkg/controller-gen"
 	"github.com/rancher/wrangler/pkg/controller-gen/args"
 
-	ksmtunedv1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
+	nodev1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 )
 
 func main() {
@@ -15,9 +15,10 @@ func main() {
 		OutputPackage: "github.com/harvester/node-manager/pkg/generated",
 		Boilerplate:   "scripts/boilerplate.go.txt",
 		Groups: map[string]args.Group{
-			ksmtunedv1.GroupName: {
+			"node.harvesterhci.io": {
 				Types: []interface{}{
-					ksmtunedv1.Ksmtuned{},
+					nodev1beta1.Ksmtuned{},
+					nodev1beta1.NodeConfig{},
 				},
 				GenerateTypes:   true,
 				GenerateClients: true,

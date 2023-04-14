@@ -31,6 +31,7 @@ func init() {
 
 type Interface interface {
 	Ksmtuned() KsmtunedController
+	NodeConfig() NodeConfigController
 }
 
 func New(controllerFactory controller.SharedControllerFactory) Interface {
@@ -45,4 +46,7 @@ type version struct {
 
 func (c *version) Ksmtuned() KsmtunedController {
 	return NewKsmtunedController(schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "Ksmtuned"}, "ksmtuneds", false, c.controllerFactory)
+}
+func (c *version) NodeConfig() NodeConfigController {
+	return NewNodeConfigController(schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "NodeConfig"}, "nodeconfigs", true, c.controllerFactory)
 }

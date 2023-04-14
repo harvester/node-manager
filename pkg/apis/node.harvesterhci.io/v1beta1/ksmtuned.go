@@ -4,8 +4,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const GroupName = "node.harvesterhci.io"
-
 type KsmdRun string
 
 const (
