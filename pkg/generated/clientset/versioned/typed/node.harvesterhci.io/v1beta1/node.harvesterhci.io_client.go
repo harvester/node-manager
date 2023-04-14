@@ -29,6 +29,7 @@ import (
 type NodeV1beta1Interface interface {
 	RESTClient() rest.Interface
 	KsmtunedsGetter
+	NodeConfigsGetter
 }
 
 // NodeV1beta1Client is used to interact with features provided by the node.harvesterhci.io group.
@@ -38,6 +39,10 @@ type NodeV1beta1Client struct {
 
 func (c *NodeV1beta1Client) Ksmtuneds() KsmtunedInterface {
 	return newKsmtuneds(c)
+}
+
+func (c *NodeV1beta1Client) NodeConfigs(namespace string) NodeConfigInterface {
+	return newNodeConfigs(c, namespace)
 }
 
 // NewForConfig creates a new NodeV1beta1Client for the given config.

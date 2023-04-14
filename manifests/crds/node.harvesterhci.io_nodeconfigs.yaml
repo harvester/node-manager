@@ -1,0 +1,108 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    {}
+  creationTimestamp: null
+  name: nodeconfigs.node.harvesterhci.io
+spec:
+  group: node.harvesterhci.io
+  names:
+    kind: NodeConfig
+    listKind: NodeConfigList
+    plural: nodeconfigs
+    shortNames:
+    - nodeconfigs
+    singular: nodeconfig
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.nodeName
+      name: Scope
+      type: string
+    - jsonPath: .status.allConfigStatus
+      name: Status
+      type: string
+    name: v1beta1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              ntpConfigs:
+                properties:
+                  configModified:
+                    type: boolean
+                  ntpServers:
+                    type: string
+                required:
+                - configModified
+                - ntpServers
+                type: object
+            type: object
+          status:
+            properties:
+              allConfigsStatus:
+                default: WaitApplied
+                description: AllConfigStatus present the all configs status (Applied
+                  or WaitApplied) the current state config, options are "Applied",
+                  "WaitApplied"
+                enum:
+                - Applied
+                - WaitApplied
+                type: string
+              ntpConditions:
+                items:
+                  properties:
+                    lastProbeTime:
+                      format: date-time
+                      nullable: true
+                      type: string
+                    lastTransitionTime:
+                      format: date-time
+                      nullable: true
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            required:
+            - allConfigsStatus
+            type: object
+        required:
+        - metadata
+        - spec
+        - status
+        type: object
+    served: true
+    storage: true
+    subresources: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
