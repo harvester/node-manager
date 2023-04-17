@@ -14,18 +14,11 @@ spec:
     listKind: NodeConfigList
     plural: nodeconfigs
     shortNames:
-    - nodeconfigs
+    - nconf
     singular: nodeconfig
   scope: Namespaced
   versions:
-  - additionalPrinterColumns:
-    - jsonPath: .spec.nodeName
-      name: Scope
-      type: string
-    - jsonPath: .status.allConfigStatus
-      name: Status
-      type: string
-    name: v1beta1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         properties:
@@ -45,26 +38,14 @@ spec:
             properties:
               ntpConfigs:
                 properties:
-                  configModified:
-                    type: boolean
                   ntpServers:
                     type: string
                 required:
-                - configModified
                 - ntpServers
                 type: object
             type: object
           status:
             properties:
-              allConfigsStatus:
-                default: WaitApplied
-                description: AllConfigStatus present the all configs status (Applied
-                  or WaitApplied) the current state config, options are "Applied",
-                  "WaitApplied"
-                enum:
-                - Applied
-                - WaitApplied
-                type: string
               ntpConditions:
                 items:
                   properties:
@@ -89,17 +70,14 @@ spec:
                   - type
                   type: object
                 type: array
-            required:
-            - allConfigsStatus
             type: object
         required:
-        - metadata
         - spec
-        - status
         type: object
     served: true
     storage: true
-    subresources: {}
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

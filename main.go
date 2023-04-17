@@ -21,7 +21,8 @@ import (
 	"k8s.io/klog"
 
 	"github.com/harvester/node-manager/pkg/controller/ksmtuned"
-	ctlksmtuned "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io"
+	"github.com/harvester/node-manager/pkg/controller/nodeconfig"
+	ctlnodeharvester "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io"
 	"github.com/harvester/node-manager/pkg/metrics"
 	"github.com/harvester/node-manager/pkg/option"
 	"github.com/harvester/node-manager/pkg/version"
@@ -142,14 +143,15 @@ func run(c *cli.Context, opt *option.Option) error {
 		return fmt.Errorf("error building node controllers: %s", err.Error())
 	}
 
-	ksmtuneds, err := ctlksmtuned.NewFactoryFromConfig(cfg)
+	nodectl, err := ctlnodeharvester.NewFactoryFromConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("error building harvester-node-manager controllers: %s", err.Error())
 	}
 
 	var ksmtunedController *ksmtuned.Controller
 	run := func(ctx context.Context) {
-		kts := ksmtuneds.Node().V1beta1().Ksmtuned()
+		kts := nodectl.Node().V1beta1().Ksmtuned()
+		nodecfg := nodectl.Node().V1beta1().NodeConfig()
 		nds := nodes.Core().V1().Node()
 		if ksmtunedController, err = ksmtuned.Register(
 			ctx,
@@ -160,7 +162,15 @@ func run(c *cli.Context, opt *option.Option) error {
 			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
 		}
 
-		if err := start.All(ctx, opt.Threadiness, ksmtuneds, nodes); err != nil {
+		if err = nodeconfig.Register(
+			ctx,
+			opt.NodeName,
+			nodecfg,
+		); err != nil {
+			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
+		}
+
+		if err := start.All(ctx, opt.Threadiness, nodectl, nodes); err != nil {
 			logrus.Fatalf("error starting, %s", err.Error())
 		}
 	}
