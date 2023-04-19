@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 
+	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 
 	nodeconfigv1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
@@ -17,31 +19,43 @@ const (
 	ScpoeGlobal = "Global"
 )
 
+var toMonitorServices = []string{"NTP", "configFile"}
+
+// ensure every monitor shutdown safely
+var WaitGroup sync.WaitGroup
+
 type Controller struct {
 	ctx      context.Context
 	NodeName string
 
 	NodeConfigs      ctlv1.NodeConfigController
 	NodeConfigsCache ctlv1.NodeConfigCache
+
+	WaitGroup *sync.WaitGroup
 }
 
-func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController) error {
+func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController) (*Controller, error) {
 	ctl := &Controller{
 		ctx:              ctx,
 		NodeName:         nodeName,
 		NodeConfigs:      nodecfg,
 		NodeConfigsCache: nodecfg.Cache(),
+		WaitGroup:        &WaitGroup,
 	}
 
-	var monitorModules []interface{}
-	monitorModule := monitor.InitServiceMonitor(ctx, "Default")
-	monitorModules = append(monitorModules, monitorModule)
+	monitorNnumbers := len(toMonitorServices)
+
+	monitorModules := make([]interface{}, 0, monitorNnumbers)
+	for _, serviceName := range toMonitorServices {
+		monitorModule := monitor.InitServiceMonitor(ctx, nodecfg, nodes, nodeName, serviceName)
+		monitorModules = append(monitorModules, monitorModule)
+	}
 	monitor.StartsAllMonitors(monitorModules)
 
 	ctl.NodeConfigs.OnChange(ctx, HandlerName, ctl.OnNodeConfigChange)
 	ctl.NodeConfigs.OnRemove(ctx, HandlerName, ctl.OnNodeConfigRemove)
 
-	return nil
+	return ctl, nil
 }
 
 func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeConfig) (*nodeconfigv1.NodeConfig, error) {

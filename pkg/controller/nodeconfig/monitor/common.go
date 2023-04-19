@@ -2,9 +2,13 @@ package monitor
 
 import (
 	"context"
+	"strings"
 	"time"
 
+	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
+
+	ctlv1 "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io/v1beta1"
 )
 
 // commonMonitor is the template for others monitoring
@@ -13,7 +17,9 @@ type moduleMonitor interface {
 }
 
 const (
-	defaultInterval = 30 * time.Second
+	defaultInterval   = 30 * time.Second
+	HarvesterNS       = "harvester-system"
+	systemdConfigPath = "/host/etc/systemd/"
 )
 
 type Monitor struct {
@@ -21,10 +27,16 @@ type Monitor struct {
 	MonitorName string
 }
 
-func InitServiceMonitor(ctx context.Context, monitorName string) interface{} {
+func InitServiceMonitor(ctx context.Context, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, name, monitorName string) interface{} {
 	// Implement service monitor here
-	commonMonitor := NewCommonMonitor(ctx, monitorName)
-	return commonMonitor
+	switch strings.ToLower(monitorName) {
+	case "ntp":
+		return NewNTPMonitor(ctx, nodecfg, nodes, name, monitorName)
+	case "configfile":
+		return NewConfigFileMonitor(ctx, nodecfg, name, monitorName)
+	default:
+		return NewCommonMonitor(ctx, monitorName)
+	}
 }
 
 func NewCommonMonitor(ctx context.Context, name string) *Monitor {
