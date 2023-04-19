@@ -149,6 +149,7 @@ func run(c *cli.Context, opt *option.Option) error {
 	}
 
 	var ksmtunedController *ksmtuned.Controller
+	var nodeconfigController *nodeconfig.Controller
 	run := func(ctx context.Context) {
 		kts := nodectl.Node().V1beta1().Ksmtuned()
 		nodecfg := nodectl.Node().V1beta1().NodeConfig()
@@ -162,10 +163,11 @@ func run(c *cli.Context, opt *option.Option) error {
 			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
 		}
 
-		if err = nodeconfig.Register(
+		if nodeconfigController, err = nodeconfig.Register(
 			ctx,
 			opt.NodeName,
 			nodecfg,
+			nds,
 		); err != nil {
 			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
 		}
@@ -180,6 +182,6 @@ func run(c *cli.Context, opt *option.Option) error {
 	run(ctx)
 
 	<-ctx.Done()
-
+	nodeconfigController.WaitGroup.Wait()
 	return ksmtunedController.Ksmtuned.Stop()
 }
