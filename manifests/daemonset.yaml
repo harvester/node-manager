@@ -11,7 +11,8 @@ metadata:
 spec:
   selector:
     matchLabels:
-      name: harvester-node-manager
+      app.kubernetes.io/instance: harvester
+      app.kubernetes.io/name: harvester-node-manager
   template:
     metadata:
       labels:
@@ -53,6 +54,13 @@ spec:
             - mountPath: /host/proc
               name: proc
               readOnly: true
+            - mountPath: /var/run/dbus/system_bus_socket
+              name: dbus-socket
+              readOnly: true
+            - mountPath: /host/etc/systemd
+              name: host-systemd
+            - mountPath: /host/oem
+              name: host-oem
       volumes:
         - name: ksm
           hostPath:
@@ -60,3 +68,15 @@ spec:
         - name: proc
           hostPath:
             path: /proc
+        - name: dbus-socket
+          hostPath:
+            path: /var/run/dbus/system_bus_socket
+            type: ""
+        - name: host-systemd
+          hostPath:
+            path: /etc/systemd
+            type: ""
+        - name: host-oem
+          hostPath:
+            path: /oem
+            type: ""
