@@ -14,7 +14,7 @@ metadata:
   name: harvester-node-manager
 rules:
   - apiGroups: [ "node.harvesterhci.io" ]
-    resources: [ "ksmtuneds", "ksmtuneds/status" ]
+    resources: [ "*" ]
     verbs: [ "*" ]
   - apiGroups: [ "" ]
     resources: [ "nodes" ]
