@@ -92,7 +92,7 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		initProfiling(&opt)
 		initLogs(&opt)
-		return run(c, &opt)
+		return run(&opt)
 	}
 
 	if err := app.Run(os.Args); err != nil {
@@ -130,7 +130,7 @@ func initLogs(opt *option.Option) {
 	}
 }
 
-func run(c *cli.Context, opt *option.Option) error {
+func run(opt *option.Option) error {
 	ctx := signals.SetupSignalContext()
 
 	cfg, err := clientcmd.BuildConfigFromFlags(opt.MasterURL, opt.KubeConfig)
