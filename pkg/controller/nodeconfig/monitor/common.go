@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 	"strings"
+	"sync"
 	"time"
 
 	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
@@ -27,11 +28,11 @@ type Monitor struct {
 	MonitorName string
 }
 
-func InitServiceMonitor(ctx context.Context, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, name, monitorName string) interface{} {
+func InitServiceMonitor(ctx context.Context, mtx *sync.Mutex, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, name, monitorName string) interface{} {
 	// Implement service monitor here
 	switch strings.ToLower(monitorName) {
 	case "ntp":
-		return NewNTPMonitor(ctx, nodecfg, nodes, name, monitorName)
+		return NewNTPMonitor(ctx, mtx, nodecfg, nodes, name, monitorName)
 	case "configfile":
 		return NewConfigFileMonitor(ctx, nodecfg, name, monitorName)
 	default:

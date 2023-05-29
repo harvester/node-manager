@@ -59,11 +59,12 @@ func (monitor *ConfigFileMonitor) handleNTPConfigChange() {
 func (monitor *ConfigFileMonitor) genericHandler(eventName string) {
 	logrus.Debugf("Prepare to handle the event: %s", eventName)
 	eventType := parserEventType(eventName)
-	monitor.doGenericHandler(eventType)
+	if eventType != "" {
+		monitor.doGenericHandler(eventType)
+	}
 }
 
 func (monitor *ConfigFileMonitor) doGenericHandler(eventType string) {
-	logrus.Infof("genericHandler: %s", eventType)
 	switch eventType {
 	case "NTP":
 		monitor.handleNTPConfigChange()
@@ -77,7 +78,7 @@ func parserEventType(path string) string {
 	case timesyncdConfigPath:
 		return "NTP"
 	default:
-		logrus.Errorf("unknown file path: %s", path)
+		logrus.Errorf("unknown supported path: %s", path)
 	}
 	return ""
 }

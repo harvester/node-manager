@@ -83,8 +83,8 @@ func main() {
 		},
 		&cli.IntFlag{
 			Name:        "threadiness",
-			Value:       2,
-			DefaultText: "2",
+			Value:       1,
+			DefaultText: "1",
 			Destination: &opt.Threadiness,
 		},
 	}
@@ -149,7 +149,6 @@ func run(opt *option.Option) error {
 	}
 
 	var ksmtunedController *ksmtuned.Controller
-	var nodeconfigController *nodeconfig.Controller
 	run := func(ctx context.Context) {
 		kts := nodectl.Node().V1beta1().Ksmtuned()
 		nodecfg := nodectl.Node().V1beta1().NodeConfig()
@@ -163,7 +162,7 @@ func run(opt *option.Option) error {
 			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
 		}
 
-		if nodeconfigController, err = nodeconfig.Register(
+		if _, err = nodeconfig.Register(
 			ctx,
 			opt.NodeName,
 			nodecfg,
@@ -182,6 +181,5 @@ func run(opt *option.Option) error {
 	run(ctx)
 
 	<-ctx.Done()
-	nodeconfigController.WaitGroup.Wait()
 	return ksmtunedController.Ksmtuned.Stop()
 }
