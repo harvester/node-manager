@@ -6,11 +6,14 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sync"
 
 	gocommon "github.com/harvester/go-common"
 	"github.com/mudler/yip/pkg/schema"
+	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	nodeconfigv1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	ctlv1 "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io/v1beta1"
@@ -30,16 +33,24 @@ const (
 	configNTPServer           = "ntpServer"
 )
 
+type NTPStatusAnnotation utils.NTPStatusAnnotation
+
 // AppliedConfigs is a json format string, you should unmarshal it to AppliedConfigAnnotation
 type NTPHandler struct {
 	NTPConfig      *nodeconfigv1.NTPConfig
 	AppliedConfigs string
+	NodeClient     ctlnode.NodeClient
+	ConfName       string
+	mtx            *sync.Mutex
 }
 
-func NewNTPConfigHandler(ntpconfigs *nodeconfigv1.NTPConfig, appliedConfig string) *NTPHandler {
+func NewNTPConfigHandler(mtx *sync.Mutex, nodes ctlnode.NodeController, confName string, ntpconfigs *nodeconfigv1.NTPConfig, appliedConfig string) *NTPHandler {
 	return &NTPHandler{
 		NTPConfig:      ntpconfigs,
 		AppliedConfigs: appliedConfig,
+		NodeClient:     nodes,
+		ConfName:       confName,
+		mtx:            mtx,
 	}
 }
 
@@ -90,6 +101,44 @@ func (handler *NTPHandler) updateNTPConfig() error {
 		return fmt.Errorf("rename temp NTP config failed. err: %v", err)
 	}
 
+	return nil
+}
+
+func (handler *NTPHandler) UpdateNodeNTPAnnotation() error {
+	logrus.Debugf("Prepare to update currentNTPServer for node annotation: %s", handler.ConfName)
+	handler.mtx.Lock()
+	defer handler.mtx.Unlock()
+	node, err := handler.NodeClient.Get(handler.ConfName, metav1.GetOptions{})
+	if err != nil {
+		logrus.Errorf("Get node %s failed. err: %v", handler.ConfName, err)
+		return err
+	}
+
+	if _, found := node.Annotations[utils.AnnotationNTP]; !found {
+		logrus.Debugf("First update should be done by monitor, skip!")
+		return nil
+	}
+	annoNTPValue := node.Annotations[utils.AnnotationNTP]
+	var ntpValue NTPStatusAnnotation
+	if err := json.Unmarshal([]byte(annoNTPValue), &ntpValue); err != nil {
+		logrus.Errorf("Unmarshal annotation value failed. err: %v", err)
+		return err
+	}
+	logrus.Debugf("Current annotation value: %+v", ntpValue)
+
+	ntpValue.CurrentNTPServers = handler.NTPConfig.NTPServers
+
+	bytes, err := json.Marshal(ntpValue)
+	if err != nil {
+		logrus.Errorf("Marshal annotation value fail, skip this round NTP check...")
+		return err
+	}
+
+	nodeCpy := node.DeepCopy()
+	nodeCpy.Annotations[utils.AnnotationNTP] = string(bytes)
+	if !reflect.DeepEqual(node, nodeCpy) {
+		handler.NodeClient.Update(nodeCpy)
+	}
 	return nil
 }
 

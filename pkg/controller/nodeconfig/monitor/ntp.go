@@ -7,6 +7,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 
 	"github.com/godbus/dbus/v5"
 	gocommon "github.com/harvester/go-common"
@@ -27,10 +28,7 @@ const (
 	timesyncdConfigPath = "/host/etc/systemd/timesyncd.conf"
 )
 
-type NTPStatusAnnotation struct {
-	NTPSyncStatus     string `json:"ntpSyncStatus"`
-	CurrentNTPServers string `json:"currentNtpServers"`
-}
+type NTPStatusAnnotation utils.NTPStatusAnnotation
 
 type NTPMonitor struct {
 	Context           context.Context
@@ -40,9 +38,10 @@ type NTPMonitor struct {
 
 	NodeClient    ctlnode.NodeClient
 	NodeConfigCtl ctlv1.NodeConfigController
+	mtx           *sync.Mutex
 }
 
-func NewNTPMonitor(ctx context.Context, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, nodeName, monitorName string) *NTPMonitor {
+func NewNTPMonitor(ctx context.Context, mtx *sync.Mutex, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, nodeName, monitorName string) *NTPMonitor {
 	return &NTPMonitor{
 		Context:       ctx,
 		MonitorName:   monitorName,
@@ -53,6 +52,7 @@ func NewNTPMonitor(ctx context.Context, nodecfg ctlv1.NodeConfigController, node
 			NTPSyncStatus:     "",
 			CurrentNTPServers: "",
 		},
+		mtx: mtx,
 	}
 }
 
@@ -170,6 +170,8 @@ func (monitor *NTPMonitor) handleTimedate1Signal(signal *dbus.Signal) {
 
 func (monitor *NTPMonitor) doAnnotationUpdate(annoValue *NTPStatusAnnotation) error {
 	logrus.Infof("Node: %s, annotation update: %+v", monitor.NodeName, annoValue)
+	monitor.mtx.Lock()
+	defer monitor.mtx.Unlock()
 	node, err := monitor.NodeClient.Get(monitor.NodeName, metav1.GetOptions{})
 	if err != nil {
 		logrus.Warnf("Get Node fail, skip this round NTP check...")
@@ -183,7 +185,7 @@ func (monitor *NTPMonitor) doAnnotationUpdate(annoValue *NTPStatusAnnotation) er
 	}
 
 	nodeCpy := node.DeepCopy()
-	nodeCpy.Annotations[AnnotationNTP] = string(bytes)
+	nodeCpy.Annotations[utils.AnnotationNTP] = string(bytes)
 	if !reflect.DeepEqual(node, nodeCpy) {
 		monitor.NodeClient.Update(nodeCpy)
 	}

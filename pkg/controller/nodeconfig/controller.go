@@ -27,17 +27,14 @@ const (
 
 var toMonitorServices = []string{"NTP", "configFile"}
 
-// ensure every monitor shutdown safely
-var WaitGroup sync.WaitGroup
-
 type Controller struct {
 	ctx      context.Context
 	NodeName string
 
 	NodeConfigs      ctlv1.NodeConfigController
 	NodeConfigsCache ctlv1.NodeConfigCache
-
-	WaitGroup *sync.WaitGroup
+	NodeClient       ctlnode.NodeController
+	mtx              *sync.Mutex
 }
 
 func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController) (*Controller, error) {
@@ -46,14 +43,15 @@ func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigCont
 		NodeName:         nodeName,
 		NodeConfigs:      nodecfg,
 		NodeConfigsCache: nodecfg.Cache(),
-		WaitGroup:        &WaitGroup,
+		NodeClient:       nodes,
+		mtx:              &sync.Mutex{},
 	}
 
 	monitorNnumbers := len(toMonitorServices)
 
 	monitorModules := make([]interface{}, 0, monitorNnumbers)
 	for _, serviceName := range toMonitorServices {
-		monitorModule := monitor.InitServiceMonitor(ctx, nodecfg, nodes, nodeName, serviceName)
+		monitorModule := monitor.InitServiceMonitor(ctx, ctl.mtx, nodecfg, nodes, nodeName, serviceName)
 		monitorModules = append(monitorModules, monitorModule)
 	}
 	monitor.StartsAllMonitors(monitorModules)
@@ -73,7 +71,7 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 
 	// NTP related handling
 	appliedConfig := nodecfg.ObjectMeta.Annotations[ConfigAppliedAnnotation]
-	ntpConfigHandler := config.NewNTPConfigHandler(nodecfg.Spec.NTPConfig, appliedConfig)
+	ntpConfigHandler := config.NewNTPConfigHandler(c.mtx, c.NodeClient, confName, nodecfg.Spec.NTPConfig, appliedConfig)
 	updated, err := ntpConfigHandler.DoNTPUpdate(len(nodecfg.Status.NTPConditions) == 0)
 	if err != nil {
 		logrus.Errorf("Update NTP config fail. err: %v", err)
@@ -89,6 +87,10 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 			return nil, err
 		}
 
+		if err := ntpConfigHandler.UpdateNodeNTPAnnotation(); err != nil {
+			logrus.Errorf("Update Node NTP annotation fail. err: %v", err)
+			return nil, err
+		}
 		annoValue := generateAnnotationValue(nodecfg.Spec.NTPConfig.NTPServers)
 		bytes, err := json.Marshal(annoValue)
 		if err != nil {
