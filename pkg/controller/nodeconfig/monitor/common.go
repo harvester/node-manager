@@ -18,9 +18,8 @@ type moduleMonitor interface {
 }
 
 const (
-	defaultInterval   = 30 * time.Second
-	HarvesterNS       = "harvester-system"
-	systemdConfigPath = "/host/etc/systemd/"
+	defaultInterval = 30 * time.Second
+	HarvesterNS     = "harvester-system"
 )
 
 type Monitor struct {

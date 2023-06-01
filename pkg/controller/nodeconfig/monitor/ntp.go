@@ -1,12 +1,9 @@
 package monitor
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
-	"os"
 	"reflect"
-	"strings"
 	"sync"
 
 	"github.com/godbus/dbus/v5"
@@ -20,12 +17,11 @@ import (
 )
 
 const (
-	AnnotationNTP       = "harvesterhci.io/ntp-service"
-	Disabled            = "disabled"
-	Unsynced            = "unsynced"
-	Synced              = "synced"
-	Unknown             = "unknown"
-	timesyncdConfigPath = "/host/etc/systemd/timesyncd.conf"
+	AnnotationNTP = "harvesterhci.io/ntp-service"
+	Disabled      = "disabled"
+	Unsynced      = "unsynced"
+	Synced        = "synced"
+	Unknown       = "unknown"
 )
 
 type NTPStatusAnnotation utils.NTPStatusAnnotation
@@ -72,20 +68,8 @@ func (monitor *NTPMonitor) startMonitor() {
 }
 
 func getNTPServersOnNode() string {
-	file, err := os.Open(timesyncdConfigPath)
-	if err != nil {
-		logrus.Errorf("Open timesyncd config file failed. err: %v", err)
-		return ""
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if found := strings.HasPrefix(line, "NTP = "); found {
-			logrus.Debugf("Found target line %s", scanner.Text())
-			return strings.TrimPrefix(line, "NTP = ")
-		}
+	if timesyncdConf := utils.GetTimesyncdConf(); timesyncdConf != nil {
+		return timesyncdConf.Get("time.ntp").(string)
 	}
 	return ""
 }

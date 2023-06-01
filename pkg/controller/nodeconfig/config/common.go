@@ -7,3 +7,16 @@ const (
 	settingsOEMPathBackupPath = "/host/oem/99_settings.yaml.bak"
 	yipStageInitramfs         = "initramfs"
 )
+
+type NTPConfigTemplate struct {
+	NTPConfigKeyValuePairs map[string]string
+}
+
+func generateNTPConfigData() string {
+	return `
+[Time]
+{{- range $key, $value := .NTPConfigKeyValuePairs }}
+{{ $key }} = {{ $value }}
+{{- end }}
+`
+}

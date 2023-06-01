@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"os"
 	"reflect"
@@ -23,7 +25,6 @@ import (
 const (
 	NTPName                   = "ntp"
 	systemdTimesyncdService   = "systemd-timesyncd.service"
-	etcSystemd                = "/host/etc/systemd/"
 	timesyncdConfigPath       = "/host/etc/systemd/timesyncd.conf"
 	timesyncdConfigBackupPath = "/host/etc/systemd/timesyncd.conf.bak"
 	timesyncdConfigOriginPath = "/host/etc/systemd/timesyncd.conf.origin"
@@ -74,6 +75,14 @@ func (handler *NTPHandler) DoNTPUpdate(forceUpdate bool) (bool, error) {
 		return false, nil
 	}
 
+	_, err := os.Stat(timesyncdConfigOriginPath)
+	if os.IsNotExist(err) {
+		logrus.Infof("Backup original ntp config ...")
+		if _, err := gocommon.BackupFileToDirWithSuffix(timesyncdConfigPath, "", "origin"); err != nil {
+			return false, fmt.Errorf("backup the original ntp config failed. err: %v", err)
+		}
+	}
+
 	logrus.Infof("Backup current ntp config ...")
 	if err := handler.backupNTPConfig(); err != nil {
 		return false, fmt.Errorf("backup NTP config failed, skip this round. err: %v", err)
@@ -87,17 +96,42 @@ func (handler *NTPHandler) DoNTPUpdate(forceUpdate bool) (bool, error) {
 	return true, nil
 }
 
-// we would write the tempfile first then rename to the target.
-func (handler *NTPHandler) updateNTPConfig() error {
-	valString := fmt.Sprintf("[Time]\nNTP = %s\n", handler.NTPConfig.NTPServers)
-	val := []byte(valString)
+func generateNTPConfigTemplate(servers string) *NTPConfigTemplate {
+	return &NTPConfigTemplate{
+		NTPConfigKeyValuePairs: map[string]string{
+			"NTP": servers,
+		},
+	}
+}
 
-	tempNTPConfigName, err := gocommon.GenerateTempFileWithDir(val, "timesyncd.conf", etcSystemd)
+func (handler *NTPHandler) generateNTPConfigRawString() (string, error) {
+	conf := generateNTPConfigTemplate(handler.NTPConfig.NTPServers)
+
+	tmpl, err := template.New("ntp").Parse(generateNTPConfigData())
+	if err != nil {
+		return "", err
+	}
+	buf := bytes.NewBufferString("")
+	err = tmpl.Execute(buf, conf)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+// updateNTPConfig write the tempfile first then rename to the target.
+func (handler *NTPHandler) updateNTPConfig() error {
+	raw, err := handler.generateNTPConfigRawString()
+	if err != nil {
+		return fmt.Errorf("generate NTP Config Raw Buffer failed. err: %v", err)
+	}
+
+	tempNTPConfigName, err := gocommon.GenerateTempFileWithDir([]byte(raw), "timesyncd.conf", utils.SystemdConfigPath)
 	if err != nil {
 		return fmt.Errorf("generate temp NTP config failed. err: %v", err)
 	}
 
-	if err = os.Rename(tempNTPConfigName, timesyncdConfigPath); err != nil {
+	if err := os.Rename(tempNTPConfigName, timesyncdConfigPath); err != nil {
 		return fmt.Errorf("rename temp NTP config failed. err: %v", err)
 	}
 
@@ -325,12 +359,11 @@ func UpdateNTPConfigApplied(nodecfgctl ctlv1.NodeConfigController, nodecfg *node
 		NewNTPConfigAppliedCondition(corev1.ConditionTrue),
 	}
 	nodecfgCpy := nodecfg.DeepCopy()
-	status := nodecfgCpy.Status
-	if err := updateNodeConfigStatus(NTPName, &status, conds); err != nil {
+	if err := updateNodeConfigStatus(NTPName, &nodecfgCpy.Status, conds); err != nil {
 		logrus.Errorf("Update NTP config status to applied failed. err: %v", err)
 		return nil, err
 	}
-	if !reflect.DeepEqual(nodecfg, nodecfgCpy) {
+	if !reflect.DeepEqual(nodecfg.Status, nodecfgCpy.Status) {
 		return nodecfgctl.UpdateStatus(nodecfgCpy)
 	}
 	return nodecfg, nil
@@ -343,12 +376,12 @@ func UpdateNTPConfigChanged(nodecfgctl ctlv1.NodeConfigController, nodecfg *node
 		NewNTPConfigAppliedCondition(corev1.ConditionFalse),
 	}
 	nodecfgCpy := nodecfg.DeepCopy()
-	status := nodecfgCpy.Status
-	if err := updateNodeConfigStatus(NTPName, &status, conds); err != nil {
+	if err := updateNodeConfigStatus(NTPName, &nodecfgCpy.Status, conds); err != nil {
 		logrus.Errorf("Update NTP config status to changed failed. err: %v", err)
 		return nil, err
 	}
-	if !reflect.DeepEqual(nodecfg, nodecfgCpy) {
+	if !reflect.DeepEqual(nodecfg.Status, nodecfgCpy.Status) {
+		logrus.Infof("DEBUG: update status: %+v", nodecfgCpy.Status)
 		return nodecfgctl.UpdateStatus(nodecfgCpy)
 	}
 	return nodecfg, nil
