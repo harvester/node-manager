@@ -8,9 +8,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ctlv1 "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io/v1beta1"
+	"github.com/harvester/node-manager/pkg/utils"
 )
 
-var monitorTargets = []string{systemdConfigPath}
+var monitorTargets = []string{utils.SystemdConfigPath}
+var timesyncdConfigPath = utils.SystemdConfigPath + utils.TimesyncdConfigName
 
 type ConfigFileMonitor struct {
 	Context        context.Context
