@@ -10,6 +10,7 @@ import (
 	gocommon "github.com/harvester/go-common"
 	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	ctlv1 "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io/v1beta1"
@@ -68,10 +69,15 @@ func (monitor *NTPMonitor) startMonitor() {
 }
 
 func getNTPServersOnNode() string {
-	if timesyncdConf := utils.GetTimesyncdConf(); timesyncdConf != nil {
-		return timesyncdConf.Get("time.ntp").(string)
+	timesyncdConf, err := utils.GetTimesyncdConf()
+	if err != nil {
+		return err.Error()
 	}
-	return ""
+	ntpServersString := ""
+	if slices.Contains(timesyncdConf.AllKeys(), "time.ntp") {
+		ntpServersString = timesyncdConf.Get("time.ntp").(string)
+	}
+	return ntpServersString
 }
 
 func checkNTPSyncStatus() string {
