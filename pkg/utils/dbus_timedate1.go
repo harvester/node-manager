@@ -11,10 +11,10 @@ func GetTimeDate1PropertiesNTP() (bool, error) {
 		return false, err
 	}
 
-	obj := conn.Object("org.freedesktop.timedate1", "/org/freedesktop/timedate1")
+	obj := conn.Object(dbusTimedate1Iface, dbusTimedate1ObjectPath)
 
 	var output bool
-	err = obj.Call("org.freedesktop.DBus.Properties.Get", 0, "org.freedesktop.timedate1", "NTP").Store(&output)
+	err = obj.Call(DbusPropertiesGet(), 0, dbusTimedate1Iface, "NTP").Store(&output)
 	if err != nil {
 		logrus.Warnf("Get timedate1 properties failed. err: %v", err)
 		return false, err
@@ -28,10 +28,10 @@ func GetTimeDate1PropertiesNTPSynchronized() (bool, error) {
 		return false, err
 	}
 
-	obj := conn.Object("org.freedesktop.timedate1", "/org/freedesktop/timedate1")
+	obj := conn.Object(dbusTimedate1Iface, dbusTimedate1ObjectPath)
 
 	var output bool
-	err = obj.Call("org.freedesktop.DBus.Properties.Get", 0, "org.freedesktop.timedate1", "NTPSynchronized").Store(&output)
+	err = obj.Call(DbusPropertiesGet(), 0, dbusTimedate1Iface, "NTPSynchronized").Store(&output)
 	if err != nil {
 		logrus.Warnf("Get timedate1 properties failed. err: %v", err)
 		return false, err

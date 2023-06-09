@@ -36,10 +36,9 @@ const (
 
 type NTPStatusAnnotation utils.NTPStatusAnnotation
 
-// AppliedConfigs is a json format string, you should unmarshal it to AppliedConfigAnnotation
 type NTPHandler struct {
 	NTPConfig      *nodeconfigv1.NTPConfig
-	AppliedConfigs string
+	AppliedConfigs string // AppliedConfigs is a json format string, you should unmarshal it to AppliedConfigAnnotation
 	NodeClient     ctlnode.NodeClient
 	ConfName       string
 	mtx            *sync.Mutex
@@ -55,7 +54,7 @@ func NewNTPConfigHandler(mtx *sync.Mutex, nodes ctlnode.NodeController, confName
 	}
 }
 
-// The main thing about update NTP, return bool for restart service and generic error
+// DoNTPUpdate will backup and update NTP to system, return bool for restart service and generic error
 func (handler *NTPHandler) DoNTPUpdate(forceUpdate bool) (bool, error) {
 	var content nodeconfigv1.AppliedConfigAnnotation
 	if !forceUpdate && handler.AppliedConfigs != "" {
@@ -164,7 +163,7 @@ func (handler *NTPHandler) UpdateNodeNTPAnnotation() error {
 
 	bytes, err := json.Marshal(ntpValue)
 	if err != nil {
-		logrus.Errorf("Marshal annotation value fail, skip this round NTP check...")
+		logrus.Errorf("Marshal annotation value fail, skip this round NTP check. err: %v", err)
 		return err
 	}
 

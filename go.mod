@@ -36,17 +36,17 @@ require (
 	github.com/rancher/wrangler v1.1.1
 	github.com/shirou/gopsutil/v3 v3.22.7
 	github.com/sirupsen/logrus v1.9.2
+	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.3
 	github.com/twpayne/go-vfs v1.7.2
 	github.com/urfave/cli/v2 v2.3.0
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	k8s.io/api v0.25.4
 	k8s.io/apimachinery v0.25.4
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/klog v1.0.0
 )
-
-require github.com/spf13/viper v1.16.0
 
 require (
 	github.com/PuerkitoBio/purell v1.1.1 // indirect

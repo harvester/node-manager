@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sync"
 
 	"github.com/ehazlett/simplelog"
 	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core"
@@ -24,7 +25,9 @@ import (
 	"github.com/harvester/node-manager/pkg/controller/nodeconfig"
 	ctlnodeharvester "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io"
 	"github.com/harvester/node-manager/pkg/metrics"
+	"github.com/harvester/node-manager/pkg/monitor"
 	"github.com/harvester/node-manager/pkg/option"
+	"github.com/harvester/node-manager/pkg/utils"
 	"github.com/harvester/node-manager/pkg/version"
 )
 
@@ -83,8 +86,8 @@ func main() {
 		},
 		&cli.IntFlag{
 			Name:        "threadiness",
-			Value:       1,
-			DefaultText: "1",
+			Value:       2,
+			DefaultText: "2",
 			Destination: &opt.Threadiness,
 		},
 	}
@@ -132,6 +135,7 @@ func initLogs(opt *option.Option) {
 
 func run(opt *option.Option) error {
 	ctx := signals.SetupSignalContext()
+	mtx := &sync.Mutex{}
 
 	cfg, err := clientcmd.BuildConfigFromFlags(opt.MasterURL, opt.KubeConfig)
 	if err != nil {
@@ -147,12 +151,12 @@ func run(opt *option.Option) error {
 	if err != nil {
 		return fmt.Errorf("error building harvester-node-manager controllers: %s", err.Error())
 	}
+	nodecfg := nodectl.Node().V1beta1().NodeConfig()
+	nds := nodes.Core().V1().Node()
 
 	var ksmtunedController *ksmtuned.Controller
 	run := func(ctx context.Context) {
 		kts := nodectl.Node().V1beta1().Ksmtuned()
-		nodecfg := nodectl.Node().V1beta1().NodeConfig()
-		nds := nodes.Core().V1().Node()
 		if ksmtunedController, err = ksmtuned.Register(
 			ctx,
 			opt.NodeName,
@@ -167,6 +171,7 @@ func run(opt *option.Option) error {
 			opt.NodeName,
 			nodecfg,
 			nds,
+			mtx,
 		); err != nil {
 			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
 		}
@@ -175,6 +180,17 @@ func run(opt *option.Option) error {
 			logrus.Fatalf("error starting, %s", err.Error())
 		}
 	}
+
+	// start monitoring
+	monitorTemplate := monitor.NewMonitorTemplate(ctx, mtx, nodecfg, nds, opt.NodeName)
+	monitorNnumbers := len(utils.GetToMonitorServices())
+
+	monitorModules := make([]interface{}, 0, monitorNnumbers)
+	for _, serviceName := range utils.GetToMonitorServices() {
+		monitorModule := monitor.InitServiceMonitor(monitorTemplate, serviceName)
+		monitorModules = append(monitorModules, monitorModule)
+	}
+	monitor.StartsAllMonitors(monitorModules)
 
 	go metrics.Run()
 

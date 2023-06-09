@@ -15,7 +15,6 @@ import (
 
 	nodeconfigv1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	"github.com/harvester/node-manager/pkg/controller/nodeconfig/config"
-	"github.com/harvester/node-manager/pkg/controller/nodeconfig/monitor"
 	ctlv1 "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io/v1beta1"
 )
 
@@ -24,8 +23,6 @@ const (
 	ConfigApplied           = "Applied"
 	ConfigAppliedAnnotation = "AppliedConfig"
 )
-
-var toMonitorServices = []string{"NTP", "configFile"}
 
 type Controller struct {
 	ctx      context.Context
@@ -37,24 +34,15 @@ type Controller struct {
 	mtx              *sync.Mutex
 }
 
-func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController) (*Controller, error) {
+func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, mtx *sync.Mutex) (*Controller, error) {
 	ctl := &Controller{
 		ctx:              ctx,
 		NodeName:         nodeName,
 		NodeConfigs:      nodecfg,
 		NodeConfigsCache: nodecfg.Cache(),
 		NodeClient:       nodes,
-		mtx:              &sync.Mutex{},
+		mtx:              mtx,
 	}
-
-	monitorNnumbers := len(toMonitorServices)
-
-	monitorModules := make([]interface{}, 0, monitorNnumbers)
-	for _, serviceName := range toMonitorServices {
-		monitorModule := monitor.InitServiceMonitor(ctx, ctl.mtx, nodecfg, nodes, nodeName, serviceName)
-		monitorModules = append(monitorModules, monitorModule)
-	}
-	monitor.StartsAllMonitors(monitorModules)
 
 	ctl.NodeConfigs.OnChange(ctx, HandlerName, ctl.OnNodeConfigChange)
 	ctl.NodeConfigs.OnRemove(ctx, HandlerName, ctl.OnNodeConfigRemove)

@@ -1,14 +1,18 @@
 package utils
 
 import (
-	"github.com/sirupsen/logrus"
+	"fmt"
+
 	"github.com/spf13/viper"
 )
 
 const (
-	AnnotationNTP       = "harvesterhci.io/ntp-service"
-	TimesyncdConfigName = "timesyncd.conf"
-	SystemdConfigPath   = "/host/etc/systemd/"
+	AnnotationNTP           = "node.harvesterhci.io/ntp-service"
+	TimesyncdConfigName     = "timesyncd.conf"
+	SystemdConfigPath       = "/host/etc/systemd/"
+	dbusPropertiesIface     = "org.freedesktop.DBus.Properties"
+	dbusTimedate1Iface      = "org.freedesktop.timedate1"
+	dbusTimedate1ObjectPath = "/org/freedesktop/timedate1"
 )
 
 type NTPStatusAnnotation struct {
@@ -16,15 +20,22 @@ type NTPStatusAnnotation struct {
 	CurrentNTPServers string `json:"currentNtpServers"`
 }
 
-func GetTimesyncdConf() *viper.Viper {
+func GetTimesyncdConf() (*viper.Viper, error) {
 	timesyncdConf := viper.New()
 	timesyncdConf.SetConfigName(TimesyncdConfigName)
 	timesyncdConf.SetConfigType("ini")
 	timesyncdConf.AddConfigPath(SystemdConfigPath)
-	err := timesyncdConf.ReadInConfig() // Find and read the config file
-	if err != nil {                     // Handle errors reading the config file
-		logrus.Errorf("Reading config file error: %v", err)
-		return nil
+	err := timesyncdConf.ReadInConfig()
+	if err != nil {
+		return nil, fmt.Errorf("reading config file error: %v", err)
 	}
-	return timesyncdConf
+	return timesyncdConf, nil
+}
+
+func GetToMonitorServices() []string {
+	return []string{"NTP", "configFile"}
+}
+
+func DbusPropertiesGet() string {
+	return dbusPropertiesIface + ".Get"
 }

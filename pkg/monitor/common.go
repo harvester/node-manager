@@ -22,20 +22,38 @@ const (
 	HarvesterNS     = "harvester-system"
 )
 
+type Template struct {
+	context    context.Context
+	nodeName   string
+	nodecfgctl ctlv1.NodeConfigController
+	nodesctl   ctlnode.NodeController
+	mtx        *sync.Mutex
+}
+
+func NewMonitorTemplate(ctx context.Context, mtx *sync.Mutex, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, nodeName string) *Template {
+	return &Template{
+		context:    ctx,
+		nodeName:   nodeName,
+		nodecfgctl: nodecfg,
+		nodesctl:   nodes,
+		mtx:        mtx,
+	}
+}
+
 type Monitor struct {
 	Context     context.Context
 	MonitorName string
 }
 
-func InitServiceMonitor(ctx context.Context, mtx *sync.Mutex, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, name, monitorName string) interface{} {
+func InitServiceMonitor(template *Template, monitorName string) interface{} {
 	// Implement service monitor here
 	switch strings.ToLower(monitorName) {
 	case "ntp":
-		return NewNTPMonitor(ctx, mtx, nodecfg, nodes, name, monitorName)
+		return NewNTPMonitor(template.context, template.mtx, template.nodecfgctl, template.nodesctl, template.nodeName, monitorName)
 	case "configfile":
-		return NewConfigFileMonitor(ctx, nodecfg, name, monitorName)
+		return NewConfigFileMonitor(template.context, template.nodecfgctl, template.nodeName, monitorName)
 	default:
-		return NewCommonMonitor(ctx, monitorName)
+		return NewCommonMonitor(template.context, monitorName)
 	}
 }
 
@@ -55,7 +73,7 @@ func (monitor *Monitor) startMonitor() {
 			select {
 			case <-ticker.C:
 				if err := monitor.runMonitor(); err != nil {
-					logrus.Errorf("Failed to rescan block devices on node %s: %v", monitor.MonitorName, err)
+					logrus.Errorf("Failed to run the monitor %s: %v", monitor.MonitorName, err)
 				}
 			case <-monitor.Context.Done():
 				return
