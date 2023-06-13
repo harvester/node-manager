@@ -10,9 +10,11 @@ const (
 	AnnotationNTP           = "node.harvesterhci.io/ntp-service"
 	TimesyncdConfigName     = "timesyncd.conf"
 	SystemdConfigPath       = "/host/etc/systemd/"
-	dbusPropertiesIface     = "org.freedesktop.DBus.Properties"
-	dbusTimedate1Iface      = "org.freedesktop.timedate1"
-	dbusTimedate1ObjectPath = "/org/freedesktop/timedate1"
+	DbusPropertiesIface     = "org.freedesktop.DBus.Properties"
+	DbusTimedate1Name       = "org.freedesktop.timedate1"
+	DbusTimesync1Name       = "org.freedesktop.timesync1.Manager"
+	DbusTimedate1ObjectPath = "/org/freedesktop/timedate1"
+	DbusTimesync1ObjectPath = "/org/freedesktop/timesync1"
 )
 
 type NTPStatusAnnotation struct {
@@ -37,5 +39,5 @@ func GetToMonitorServices() []string {
 }
 
 func DbusPropertiesGet() string {
-	return dbusPropertiesIface + ".Get"
+	return DbusPropertiesIface + ".Get"
 }
