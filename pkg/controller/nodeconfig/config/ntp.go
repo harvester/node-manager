@@ -8,12 +8,14 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 
 	gocommon "github.com/harvester/go-common"
 	"github.com/mudler/yip/pkg/schema"
 	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -45,8 +47,9 @@ type NTPHandler struct {
 }
 
 func NewNTPConfigHandler(mtx *sync.Mutex, nodes ctlnode.NodeController, confName string, ntpconfigs *nodeconfigv1.NTPConfig, appliedConfig string) *NTPHandler {
+	newntpconfigs := reGenerateNTPConfig(ntpconfigs)
 	return &NTPHandler{
-		NTPConfig:      ntpconfigs,
+		NTPConfig:      newntpconfigs,
 		AppliedConfigs: appliedConfig,
 		NodeClient:     nodes,
 		ConfName:       confName,
@@ -438,4 +441,23 @@ func updateCondition(conditions []nodeconfigv1.ConfigStatus, c nodeconfigv1.Conf
 		conditions = append(conditions, c)
 	}
 	return conditions
+}
+
+func reGenerateNTPConfig(ntpconfigs *nodeconfigv1.NTPConfig) *nodeconfigv1.NTPConfig {
+	if ntpconfigs.NTPServers == "" {
+		return ntpconfigs
+	}
+
+	// fileter the duplicated NTP servers
+	currentNTPServers := strings.Split(ntpconfigs.NTPServers, " ")
+	parsedNTPServers := make([]string, 0)
+	for _, ntpServer := range currentNTPServers {
+		if !slices.Contains(parsedNTPServers, ntpServer) {
+			parsedNTPServers = append(parsedNTPServers, ntpServer)
+		}
+	}
+	return &nodeconfigv1.NTPConfig{
+		NTPServers: strings.Join(parsedNTPServers, " "),
+	}
+
 }
