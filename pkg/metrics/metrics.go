@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -25,7 +26,11 @@ func Run() {
 	prometheus.MustRegister(KsmdUtilizationGV)
 
 	http.Handle(MetricPath, promhttp.Handler())
-	if err := http.ListenAndServe(MetricPort, nil); err != nil {
+	metricServer := &http.Server{
+		Addr:              MetricPort,
+		ReadHeaderTimeout: 10 * time.Second,
+	}
+	if err := metricServer.ListenAndServe(); err != nil {
 		logrus.Fatalf("failed to start metrics server: %s", err)
 	}
 }

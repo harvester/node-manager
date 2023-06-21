@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/ehazlett/simplelog"
 	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core"
@@ -106,8 +107,12 @@ func main() {
 func initProfiling(opt *option.Option) {
 	// enable profiler
 	if opt.ProfilerAddress != "" {
+		profilerServer := &http.Server{
+			Addr:              opt.ProfilerAddress,
+			ReadHeaderTimeout: 10 * time.Second,
+		}
 		go func() {
-			log.Println(http.ListenAndServe(opt.ProfilerAddress, nil))
+			log.Println(profilerServer.ListenAndServe())
 		}()
 	}
 }
