@@ -2,9 +2,10 @@ package nodeconfig
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/big"
 	"reflect"
 	"strings"
 	"sync"
@@ -134,7 +135,12 @@ func (c *Controller) OnNodeConfigRemove(key string, nodecfg *nodeconfigv1.NodeCo
 
 func enqueueJitter() time.Duration {
 	baseDelay := 7
-	return time.Duration(rand.Intn(3)+baseDelay) * time.Second
+	randInt, err := rand.Int(rand.Reader, big.NewInt(3))
+	if err != nil {
+		logrus.Errorf("Failed to generate random number: %v", err)
+		randInt = big.NewInt(0)
+	}
+	return time.Duration(randInt.Sign()+baseDelay) * time.Second
 }
 
 func generateAnnotationValue(ntpServers string) *nodeconfigv1.AppliedConfigAnnotation {
