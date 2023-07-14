@@ -2,15 +2,14 @@ package nodeconfig
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
 	"fmt"
-	"math/big"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
 
+	gocommon "github.com/harvester/go-common"
 	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 
@@ -135,12 +134,11 @@ func (c *Controller) OnNodeConfigRemove(key string, nodecfg *nodeconfigv1.NodeCo
 
 func enqueueJitter() time.Duration {
 	baseDelay := 7
-	randInt, err := rand.Int(rand.Reader, big.NewInt(3))
+	randNum, err := gocommon.GenRandNumber(3)
 	if err != nil {
-		logrus.Errorf("Failed to generate random number: %v", err)
-		randInt = big.NewInt(0)
+		logrus.Errorf("Failed to generate random number, use `0` as randNumber: %v", err)
 	}
-	return time.Duration(randInt.Sign()+baseDelay) * time.Second
+	return time.Duration(int(randNum)+baseDelay) * time.Second
 }
 
 func generateAnnotationValue(ntpServers string) *nodeconfigv1.AppliedConfigAnnotation {

@@ -28,7 +28,7 @@ replace (
 require (
 	github.com/ehazlett/simplelog v0.0.0-20200226020431-d374894e92a4
 	github.com/godbus/dbus/v5 v5.1.0
-	github.com/harvester/go-common v0.0.0-20230605055740-4a715ed1f687
+	github.com/harvester/go-common v0.0.0-20230718010724-11313421a8f5
 	github.com/mudler/yip v1.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.12.1

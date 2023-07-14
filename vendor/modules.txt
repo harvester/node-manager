@@ -82,8 +82,8 @@ github.com/google/gofuzz
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
 github.com/google/shlex
-# github.com/harvester/go-common v0.0.0-20230605055740-4a715ed1f687
-## explicit; go 1.18
+# github.com/harvester/go-common v0.0.0-20230718010724-11313421a8f5
+## explicit; go 1.19
 github.com/harvester/go-common
 # github.com/hashicorp/errwrap v1.1.0
 ## explicit
