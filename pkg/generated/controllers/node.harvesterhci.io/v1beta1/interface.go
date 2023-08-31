@@ -21,6 +21,7 @@ package v1beta1
 import (
 	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	"github.com/rancher/lasso/pkg/controller"
+	"github.com/rancher/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/pkg/schemes"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -44,9 +45,10 @@ type version struct {
 	controllerFactory controller.SharedControllerFactory
 }
 
-func (c *version) Ksmtuned() KsmtunedController {
-	return NewKsmtunedController(schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "Ksmtuned"}, "ksmtuneds", false, c.controllerFactory)
+func (v *version) Ksmtuned() KsmtunedController {
+	return generic.NewNonNamespacedController[*v1beta1.Ksmtuned, *v1beta1.KsmtunedList](schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "Ksmtuned"}, "ksmtuneds", v.controllerFactory)
 }
-func (c *version) NodeConfig() NodeConfigController {
-	return NewNodeConfigController(schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "NodeConfig"}, "nodeconfigs", true, c.controllerFactory)
+
+func (v *version) NodeConfig() NodeConfigController {
+	return generic.NewController[*v1beta1.NodeConfig, *v1beta1.NodeConfigList](schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "NodeConfig"}, "nodeconfigs", true, v.controllerFactory)
 }

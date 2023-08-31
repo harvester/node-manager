@@ -23,244 +23,29 @@ import (
 	"time"
 
 	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
-	"github.com/rancher/lasso/pkg/client"
-	"github.com/rancher/lasso/pkg/controller"
 	"github.com/rancher/wrangler/pkg/apply"
 	"github.com/rancher/wrangler/pkg/condition"
 	"github.com/rancher/wrangler/pkg/generic"
 	"github.com/rancher/wrangler/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	"k8s.io/client-go/tools/cache"
 )
 
-type NodeConfigHandler func(string, *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error)
-
+// NodeConfigController interface for managing NodeConfig resources.
 type NodeConfigController interface {
-	generic.ControllerMeta
-	NodeConfigClient
-
-	OnChange(ctx context.Context, name string, sync NodeConfigHandler)
-	OnRemove(ctx context.Context, name string, sync NodeConfigHandler)
-	Enqueue(namespace, name string)
-	EnqueueAfter(namespace, name string, duration time.Duration)
-
-	Cache() NodeConfigCache
+	generic.ControllerInterface[*v1beta1.NodeConfig, *v1beta1.NodeConfigList]
 }
 
+// NodeConfigClient interface for managing NodeConfig resources in Kubernetes.
 type NodeConfigClient interface {
-	Create(*v1beta1.NodeConfig) (*v1beta1.NodeConfig, error)
-	Update(*v1beta1.NodeConfig) (*v1beta1.NodeConfig, error)
-	UpdateStatus(*v1beta1.NodeConfig) (*v1beta1.NodeConfig, error)
-	Delete(namespace, name string, options *metav1.DeleteOptions) error
-	Get(namespace, name string, options metav1.GetOptions) (*v1beta1.NodeConfig, error)
-	List(namespace string, opts metav1.ListOptions) (*v1beta1.NodeConfigList, error)
-	Watch(namespace string, opts metav1.ListOptions) (watch.Interface, error)
-	Patch(namespace, name string, pt types.PatchType, data []byte, subresources ...string) (result *v1beta1.NodeConfig, err error)
+	generic.ClientInterface[*v1beta1.NodeConfig, *v1beta1.NodeConfigList]
 }
 
+// NodeConfigCache interface for retrieving NodeConfig resources in memory.
 type NodeConfigCache interface {
-	Get(namespace, name string) (*v1beta1.NodeConfig, error)
-	List(namespace string, selector labels.Selector) ([]*v1beta1.NodeConfig, error)
-
-	AddIndexer(indexName string, indexer NodeConfigIndexer)
-	GetByIndex(indexName, key string) ([]*v1beta1.NodeConfig, error)
-}
-
-type NodeConfigIndexer func(obj *v1beta1.NodeConfig) ([]string, error)
-
-type nodeConfigController struct {
-	controller    controller.SharedController
-	client        *client.Client
-	gvk           schema.GroupVersionKind
-	groupResource schema.GroupResource
-}
-
-func NewNodeConfigController(gvk schema.GroupVersionKind, resource string, namespaced bool, controller controller.SharedControllerFactory) NodeConfigController {
-	c := controller.ForResourceKind(gvk.GroupVersion().WithResource(resource), gvk.Kind, namespaced)
-	return &nodeConfigController{
-		controller: c,
-		client:     c.Client(),
-		gvk:        gvk,
-		groupResource: schema.GroupResource{
-			Group:    gvk.Group,
-			Resource: resource,
-		},
-	}
-}
-
-func FromNodeConfigHandlerToHandler(sync NodeConfigHandler) generic.Handler {
-	return func(key string, obj runtime.Object) (ret runtime.Object, err error) {
-		var v *v1beta1.NodeConfig
-		if obj == nil {
-			v, err = sync(key, nil)
-		} else {
-			v, err = sync(key, obj.(*v1beta1.NodeConfig))
-		}
-		if v == nil {
-			return nil, err
-		}
-		return v, err
-	}
-}
-
-func (c *nodeConfigController) Updater() generic.Updater {
-	return func(obj runtime.Object) (runtime.Object, error) {
-		newObj, err := c.Update(obj.(*v1beta1.NodeConfig))
-		if newObj == nil {
-			return nil, err
-		}
-		return newObj, err
-	}
-}
-
-func UpdateNodeConfigDeepCopyOnChange(client NodeConfigClient, obj *v1beta1.NodeConfig, handler func(obj *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error)) (*v1beta1.NodeConfig, error) {
-	if obj == nil {
-		return obj, nil
-	}
-
-	copyObj := obj.DeepCopy()
-	newObj, err := handler(copyObj)
-	if newObj != nil {
-		copyObj = newObj
-	}
-	if obj.ResourceVersion == copyObj.ResourceVersion && !equality.Semantic.DeepEqual(obj, copyObj) {
-		return client.Update(copyObj)
-	}
-
-	return copyObj, err
-}
-
-func (c *nodeConfigController) AddGenericHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.controller.RegisterHandler(ctx, name, controller.SharedControllerHandlerFunc(handler))
-}
-
-func (c *nodeConfigController) AddGenericRemoveHandler(ctx context.Context, name string, handler generic.Handler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), handler))
-}
-
-func (c *nodeConfigController) OnChange(ctx context.Context, name string, sync NodeConfigHandler) {
-	c.AddGenericHandler(ctx, name, FromNodeConfigHandlerToHandler(sync))
-}
-
-func (c *nodeConfigController) OnRemove(ctx context.Context, name string, sync NodeConfigHandler) {
-	c.AddGenericHandler(ctx, name, generic.NewRemoveHandler(name, c.Updater(), FromNodeConfigHandlerToHandler(sync)))
-}
-
-func (c *nodeConfigController) Enqueue(namespace, name string) {
-	c.controller.Enqueue(namespace, name)
-}
-
-func (c *nodeConfigController) EnqueueAfter(namespace, name string, duration time.Duration) {
-	c.controller.EnqueueAfter(namespace, name, duration)
-}
-
-func (c *nodeConfigController) Informer() cache.SharedIndexInformer {
-	return c.controller.Informer()
-}
-
-func (c *nodeConfigController) GroupVersionKind() schema.GroupVersionKind {
-	return c.gvk
-}
-
-func (c *nodeConfigController) Cache() NodeConfigCache {
-	return &nodeConfigCache{
-		indexer:  c.Informer().GetIndexer(),
-		resource: c.groupResource,
-	}
-}
-
-func (c *nodeConfigController) Create(obj *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error) {
-	result := &v1beta1.NodeConfig{}
-	return result, c.client.Create(context.TODO(), obj.Namespace, obj, result, metav1.CreateOptions{})
-}
-
-func (c *nodeConfigController) Update(obj *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error) {
-	result := &v1beta1.NodeConfig{}
-	return result, c.client.Update(context.TODO(), obj.Namespace, obj, result, metav1.UpdateOptions{})
-}
-
-func (c *nodeConfigController) UpdateStatus(obj *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error) {
-	result := &v1beta1.NodeConfig{}
-	return result, c.client.UpdateStatus(context.TODO(), obj.Namespace, obj, result, metav1.UpdateOptions{})
-}
-
-func (c *nodeConfigController) Delete(namespace, name string, options *metav1.DeleteOptions) error {
-	if options == nil {
-		options = &metav1.DeleteOptions{}
-	}
-	return c.client.Delete(context.TODO(), namespace, name, *options)
-}
-
-func (c *nodeConfigController) Get(namespace, name string, options metav1.GetOptions) (*v1beta1.NodeConfig, error) {
-	result := &v1beta1.NodeConfig{}
-	return result, c.client.Get(context.TODO(), namespace, name, result, options)
-}
-
-func (c *nodeConfigController) List(namespace string, opts metav1.ListOptions) (*v1beta1.NodeConfigList, error) {
-	result := &v1beta1.NodeConfigList{}
-	return result, c.client.List(context.TODO(), namespace, result, opts)
-}
-
-func (c *nodeConfigController) Watch(namespace string, opts metav1.ListOptions) (watch.Interface, error) {
-	return c.client.Watch(context.TODO(), namespace, opts)
-}
-
-func (c *nodeConfigController) Patch(namespace, name string, pt types.PatchType, data []byte, subresources ...string) (*v1beta1.NodeConfig, error) {
-	result := &v1beta1.NodeConfig{}
-	return result, c.client.Patch(context.TODO(), namespace, name, pt, data, result, metav1.PatchOptions{}, subresources...)
-}
-
-type nodeConfigCache struct {
-	indexer  cache.Indexer
-	resource schema.GroupResource
-}
-
-func (c *nodeConfigCache) Get(namespace, name string) (*v1beta1.NodeConfig, error) {
-	obj, exists, err := c.indexer.GetByKey(namespace + "/" + name)
-	if err != nil {
-		return nil, err
-	}
-	if !exists {
-		return nil, errors.NewNotFound(c.resource, name)
-	}
-	return obj.(*v1beta1.NodeConfig), nil
-}
-
-func (c *nodeConfigCache) List(namespace string, selector labels.Selector) (ret []*v1beta1.NodeConfig, err error) {
-
-	err = cache.ListAllByNamespace(c.indexer, namespace, selector, func(m interface{}) {
-		ret = append(ret, m.(*v1beta1.NodeConfig))
-	})
-
-	return ret, err
-}
-
-func (c *nodeConfigCache) AddIndexer(indexName string, indexer NodeConfigIndexer) {
-	utilruntime.Must(c.indexer.AddIndexers(map[string]cache.IndexFunc{
-		indexName: func(obj interface{}) (strings []string, e error) {
-			return indexer(obj.(*v1beta1.NodeConfig))
-		},
-	}))
-}
-
-func (c *nodeConfigCache) GetByIndex(indexName, key string) (result []*v1beta1.NodeConfig, err error) {
-	objs, err := c.indexer.ByIndex(indexName, key)
-	if err != nil {
-		return nil, err
-	}
-	result = make([]*v1beta1.NodeConfig, 0, len(objs))
-	for _, obj := range objs {
-		result = append(result, obj.(*v1beta1.NodeConfig))
-	}
-	return result, nil
+	generic.CacheInterface[*v1beta1.NodeConfig]
 }
 
 type NodeConfigStatusHandler func(obj *v1beta1.NodeConfig, status v1beta1.NodeConfigStatus) (v1beta1.NodeConfigStatus, error)
@@ -273,7 +58,7 @@ func RegisterNodeConfigStatusHandler(ctx context.Context, controller NodeConfigC
 		condition: condition,
 		handler:   handler,
 	}
-	controller.AddGenericHandler(ctx, name, FromNodeConfigHandlerToHandler(statusHandler.sync))
+	controller.AddGenericHandler(ctx, name, generic.FromObjectHandlerToHandler(statusHandler.sync))
 }
 
 func RegisterNodeConfigGeneratingHandler(ctx context.Context, controller NodeConfigController, apply apply.Apply,
