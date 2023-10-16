@@ -1,6 +1,6 @@
 module github.com/harvester/node-manager
 
-go 1.19
+go 1.20
 
 replace (
 	golang.org/x/net => golang.org/x/net v0.7.0
