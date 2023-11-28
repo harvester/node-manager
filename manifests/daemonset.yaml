@@ -21,8 +21,10 @@ spec:
       tolerations:
         # this toleration is to have the daemonset runnable on master nodes
         # remove it if your masters can't run pods
-        - key: node-role.kubernetes.io/master
-          effect: NoSchedule
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master 
+        - effect: NoExecute
+          operator: Exists
       serviceAccountName: harvester-node-manager
       containers:
         - env:
