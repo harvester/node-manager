@@ -19,6 +19,7 @@ func main() {
 				Types: []interface{}{
 					nodev1beta1.Ksmtuned{},
 					nodev1beta1.NodeConfig{},
+					nodev1beta1.CloudInit{},
 				},
 				GenerateTypes:   true,
 				GenerateClients: true,

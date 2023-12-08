@@ -28,6 +28,10 @@ type FakeNodeV1beta1 struct {
 	*testing.Fake
 }
 
+func (c *FakeNodeV1beta1) CloudInits() v1beta1.CloudInitInterface {
+	return &FakeCloudInits{c}
+}
+
 func (c *FakeNodeV1beta1) Ksmtuneds() v1beta1.KsmtunedInterface {
 	return &FakeKsmtuneds{c}
 }
