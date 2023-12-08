@@ -31,6 +31,7 @@ func init() {
 }
 
 type Interface interface {
+	CloudInit() CloudInitController
 	Ksmtuned() KsmtunedController
 	NodeConfig() NodeConfigController
 }
@@ -43,6 +44,10 @@ func New(controllerFactory controller.SharedControllerFactory) Interface {
 
 type version struct {
 	controllerFactory controller.SharedControllerFactory
+}
+
+func (v *version) CloudInit() CloudInitController {
+	return generic.NewNonNamespacedController[*v1beta1.CloudInit, *v1beta1.CloudInitList](schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "CloudInit"}, "cloudinits", v.controllerFactory)
 }
 
 func (v *version) Ksmtuned() KsmtunedController {

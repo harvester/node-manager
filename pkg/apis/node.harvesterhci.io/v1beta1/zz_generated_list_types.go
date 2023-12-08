@@ -57,3 +57,20 @@ func NewNodeConfig(namespace, name string, obj NodeConfig) *NodeConfig {
 	obj.Namespace = namespace
 	return &obj
 }
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// CloudInitList is a list of CloudInit resources
+type CloudInitList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []CloudInit `json:"items"`
+}
+
+func NewCloudInit(namespace, name string, obj CloudInit) *CloudInit {
+	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("CloudInit").ToAPIVersionAndKind()
+	obj.Name = name
+	obj.Namespace = namespace
+	return &obj
+}

@@ -18,6 +18,8 @@ limitations under the License.
 
 package v1beta1
 
+type CloudInitExpansion interface{}
+
 type KsmtunedExpansion interface{}
 
 type NodeConfigExpansion interface{}

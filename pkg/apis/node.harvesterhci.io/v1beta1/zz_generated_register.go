@@ -28,6 +28,7 @@ import (
 )
 
 var (
+	CloudInitResourceName  = "cloudinits"
 	KsmtunedResourceName   = "ksmtuneds"
 	NodeConfigResourceName = "nodeconfigs"
 )
@@ -53,6 +54,8 @@ var (
 // Adds the list of known types to Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
+		&CloudInit{},
+		&CloudInitList{},
 		&Ksmtuned{},
 		&KsmtunedList{},
 		&NodeConfig{},
