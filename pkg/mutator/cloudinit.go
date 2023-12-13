@@ -1,6 +1,9 @@
 package mutator
 
 import (
+	"fmt"
+	"path/filepath"
+
 	"github.com/harvester/webhook/pkg/server/admission"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,16 +19,48 @@ func NewCloudInitMutator() *CloudInit {
 	return &CloudInit{}
 }
 
-func (m *CloudInit) Create(_ *admission.Request, _ runtime.Object) (admission.Patch, error) {
+func (m *CloudInit) Create(_ *admission.Request, newObj runtime.Object) (admission.Patch, error) {
+	newCloudInit := newObj.(*v1beta1.CloudInit)
+	return patchFilenameIfNecessary(newCloudInit)
+}
+
+func (m *CloudInit) Update(_ *admission.Request, _ runtime.Object, newObj runtime.Object) (admission.Patch, error) {
+	newCloudInit := newObj.(*v1beta1.CloudInit)
+	return patchFilenameIfNecessary(newCloudInit)
+}
+
+func patchFilenameIfNecessary(newCloudInit *v1beta1.CloudInit) (admission.Patch, error) {
 	var patch admission.Patch
-	// Not implemented, validator will fail request
+
+	filename := ensureFileExtension(filepath.Base(newCloudInit.Spec.Filename))
+	if filename == newCloudInit.Spec.Filename {
+		return patch, nil
+	}
+
+	p := admission.PatchOp{
+		Op:    admission.PatchOpReplace,
+		Path:  "/spec/filename",
+		Value: filename,
+	}
+	patch = append(patch, p)
+
 	return patch, nil
 }
 
-func (m *CloudInit) Update(_ *admission.Request, _ runtime.Object, _ runtime.Object) (admission.Patch, error) {
-	var patch admission.Patch
-	// Not implemented, validator will fail request
-	return patch, nil
+func ensureFileExtension(s string) string {
+	accept := func(extension string) bool {
+		extensions := []string{".yaml", ".yml"}
+		for _, ext := range extensions {
+			if ext == extension {
+				return true
+			}
+		}
+		return false
+	}
+	if accept(filepath.Ext(s)) {
+		return s
+	}
+	return fmt.Sprintf("%s.yaml", s)
 }
 
 func (m *CloudInit) Resource() admission.Resource {
