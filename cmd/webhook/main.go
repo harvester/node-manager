@@ -92,8 +92,13 @@ func main() {
 func runWebhookServer(ctx context.Context, cfg *rest.Config, options *config.Options) error {
 	webhookServer := server.NewWebhookServer(ctx, cfg, webhookName, options)
 
+	cloudinitValidator, err := admitter.NewCloudInitValidator(cfg)
+	if err != nil {
+		return err
+	}
+
 	var validators = []admission.Validator{
-		admitter.NewCloudInitValidator(),
+		cloudinitValidator,
 	}
 
 	if err := webhookServer.RegisterValidators(validators...); err != nil {
