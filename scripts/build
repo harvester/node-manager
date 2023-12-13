@@ -25,3 +25,4 @@ build() {
 }
 
 build "harvester-node-manager" "."
+build "harvester-node-manager-webhook" "./cmd/webhook"
