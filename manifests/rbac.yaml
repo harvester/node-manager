@@ -36,3 +36,41 @@ subjects:
   - kind: ServiceAccount
     name: harvester-node-manager
     namespace: harvester-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: harvester-node-manager-webhook
+rules:
+  - apiGroups: [ "node.harvesterhci.io" ]
+    resources: [ "*" ]
+    verbs: [ "get", "watch", "list" ]
+  - apiGroups: [ "" ]
+    resources: [ "secrets", "configmaps" ]
+    verbs: [ "get", "watch", "list", "update", "create" ]
+  - apiGroups: [ "apiregistration.k8s.io" ]
+    resources: [ "apiservices"]
+    verbs: [ "get", "watch", "list" ]
+  - apiGroups: [ "apiextensions.k8s.io" ]
+    resources: [ "customresourcedefinitions" ]
+    verbs: [ "get", "watch", "list" ]
+  - apiGroups: [ "admissionregistration.k8s.io" ]
+    resources: [ "validatingwebhookconfigurations", "mutatingwebhookconfigurations" ]
+    verbs: [ "*" ]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app.kubernetes.io/name: harvester-node-manager-webhook
+    app.kubernetes.io/component: node-manager
+    app.kubernetes.io/version: 0.1.0
+  name: harvester-node-manager-webhook
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: harvester-node-manager-webhook
+subjects:
+  - kind: ServiceAccount
+    name: harvester-node-manager
+    namespace: harvester-system
