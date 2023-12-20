@@ -25,7 +25,7 @@ steps:
       password:
         from_secret: docker_password
       repo: "rancher/harvester-node-manager"
-      tag: ${DRONE_BRANCH}-head
+      tag: "${DRONE_BRANCH}-head-linux-amd64"
       username:
         from_secret: docker_username
     when:
@@ -43,7 +43,7 @@ steps:
       password:
         from_secret: docker_password
       repo: "rancher/harvester-node-manager"
-      tag: "${DRONE_TAG}"
+      tag: "${DRONE_TAG}-linux-amd64"
       username:
         from_secret: docker_username
     when:
@@ -87,7 +87,7 @@ steps:
       password:
         from_secret: docker_password
       repo: "rancher/harvester-node-manager"
-      tag: ${DRONE_BRANCH}-head
+      tag: ${DRONE_BRANCH}-head-linux-arm64
       username:
         from_secret: docker_username
     when:
@@ -105,7 +105,7 @@ steps:
       password:
         from_secret: docker_password
       repo: "rancher/harvester-node-manager"
-      tag: "${DRONE_TAG}"
+      tag: "${DRONE_TAG}-linux-arm64"
       username:
         from_secret: docker_username
     when:
@@ -121,3 +121,54 @@ volumes:
   - name: docker
     host:
       path: /var/run/docker.sock
+
+---
+kind: pipeline
+name: manifest
+
+steps:
+  - name: push-manifest-head
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: rancher/harvester-node-manager:${DRONE_TAG}-head
+      template: rancher/harvester-node-manager-${DRONE_TAG}-head-OS-ARCH
+      ignore_missing: true
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    when:
+      ref:
+        include:
+          - refs/heads/master
+          - refs/heads/release/v*
+      event:
+        - push
+
+  - name: push-manifest-tag
+    image: plugins/manifest
+    settings:
+      username:
+        from_secret: docker_username
+      password:
+        from_secret: docker_password
+      target: rancher/harvester-node-manager:${DRONE_TAG}
+      template: rancher/harvester-node-manager-${DRONE_TAG}-OS-ARCH
+      ignore_missing: true
+      platforms:
+        - linux/amd64
+        - linux/arm64
+    when:
+      ref:
+        include:
+          - refs/head/master
+          - refs/tags/*
+      event:
+        - tag
+
+depends_on:
+  - amd64
+  - arm64
