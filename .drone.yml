@@ -134,8 +134,8 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      target: "rancher/harvester-node-manager:${DRONE_TAG}-head"
-      template: "rancher/harvester-node-manager:${DRONE_TAG}-head-OS-ARCH"
+      target: "rancher/harvester-node-manager:${DRONE_BRANCH}-head"
+      template: "rancher/harvester-node-manager:${DRONE_BRANCH}-head-OS-ARCH"
       ignore_missing: true
       platforms:
         - linux/amd64
