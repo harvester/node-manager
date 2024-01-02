@@ -33,27 +33,27 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-// NodeConfigController interface for managing NodeConfig resources.
-type NodeConfigController interface {
-	generic.ControllerInterface[*v1beta1.NodeConfig, *v1beta1.NodeConfigList]
+// CloudInitController interface for managing CloudInit resources.
+type CloudInitController interface {
+	generic.NonNamespacedControllerInterface[*v1beta1.CloudInit, *v1beta1.CloudInitList]
 }
 
-// NodeConfigClient interface for managing NodeConfig resources in Kubernetes.
-type NodeConfigClient interface {
-	generic.ClientInterface[*v1beta1.NodeConfig, *v1beta1.NodeConfigList]
+// CloudInitClient interface for managing CloudInit resources in Kubernetes.
+type CloudInitClient interface {
+	generic.NonNamespacedClientInterface[*v1beta1.CloudInit, *v1beta1.CloudInitList]
 }
 
-// NodeConfigCache interface for retrieving NodeConfig resources in memory.
-type NodeConfigCache interface {
-	generic.CacheInterface[*v1beta1.NodeConfig]
+// CloudInitCache interface for retrieving CloudInit resources in memory.
+type CloudInitCache interface {
+	generic.NonNamespacedCacheInterface[*v1beta1.CloudInit]
 }
 
-type NodeConfigStatusHandler func(obj *v1beta1.NodeConfig, status v1beta1.NodeConfigStatus) (v1beta1.NodeConfigStatus, error)
+type CloudInitStatusHandler func(obj *v1beta1.CloudInit, status v1beta1.CloudInitStatus) (v1beta1.CloudInitStatus, error)
 
-type NodeConfigGeneratingHandler func(obj *v1beta1.NodeConfig, status v1beta1.NodeConfigStatus) ([]runtime.Object, v1beta1.NodeConfigStatus, error)
+type CloudInitGeneratingHandler func(obj *v1beta1.CloudInit, status v1beta1.CloudInitStatus) ([]runtime.Object, v1beta1.CloudInitStatus, error)
 
-func RegisterNodeConfigStatusHandler(ctx context.Context, controller NodeConfigController, condition condition.Cond, name string, handler NodeConfigStatusHandler) {
-	statusHandler := &nodeConfigStatusHandler{
+func RegisterCloudInitStatusHandler(ctx context.Context, controller CloudInitController, condition condition.Cond, name string, handler CloudInitStatusHandler) {
+	statusHandler := &cloudInitStatusHandler{
 		client:    controller,
 		condition: condition,
 		handler:   handler,
@@ -61,28 +61,28 @@ func RegisterNodeConfigStatusHandler(ctx context.Context, controller NodeConfigC
 	controller.AddGenericHandler(ctx, name, generic.FromObjectHandlerToHandler(statusHandler.sync))
 }
 
-func RegisterNodeConfigGeneratingHandler(ctx context.Context, controller NodeConfigController, apply apply.Apply,
-	condition condition.Cond, name string, handler NodeConfigGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
-	statusHandler := &nodeConfigGeneratingHandler{
-		NodeConfigGeneratingHandler: handler,
-		apply:                       apply,
-		name:                        name,
-		gvk:                         controller.GroupVersionKind(),
+func RegisterCloudInitGeneratingHandler(ctx context.Context, controller CloudInitController, apply apply.Apply,
+	condition condition.Cond, name string, handler CloudInitGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
+	statusHandler := &cloudInitGeneratingHandler{
+		CloudInitGeneratingHandler: handler,
+		apply:                      apply,
+		name:                       name,
+		gvk:                        controller.GroupVersionKind(),
 	}
 	if opts != nil {
 		statusHandler.opts = *opts
 	}
 	controller.OnChange(ctx, name, statusHandler.Remove)
-	RegisterNodeConfigStatusHandler(ctx, controller, condition, name, statusHandler.Handle)
+	RegisterCloudInitStatusHandler(ctx, controller, condition, name, statusHandler.Handle)
 }
 
-type nodeConfigStatusHandler struct {
-	client    NodeConfigClient
+type cloudInitStatusHandler struct {
+	client    CloudInitClient
 	condition condition.Cond
-	handler   NodeConfigStatusHandler
+	handler   CloudInitStatusHandler
 }
 
-func (a *nodeConfigStatusHandler) sync(key string, obj *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error) {
+func (a *cloudInitStatusHandler) sync(key string, obj *v1beta1.CloudInit) (*v1beta1.CloudInit, error) {
 	if obj == nil {
 		return obj, nil
 	}
@@ -121,20 +121,20 @@ func (a *nodeConfigStatusHandler) sync(key string, obj *v1beta1.NodeConfig) (*v1
 	return obj, err
 }
 
-type nodeConfigGeneratingHandler struct {
-	NodeConfigGeneratingHandler
+type cloudInitGeneratingHandler struct {
+	CloudInitGeneratingHandler
 	apply apply.Apply
 	opts  generic.GeneratingHandlerOptions
 	gvk   schema.GroupVersionKind
 	name  string
 }
 
-func (a *nodeConfigGeneratingHandler) Remove(key string, obj *v1beta1.NodeConfig) (*v1beta1.NodeConfig, error) {
+func (a *cloudInitGeneratingHandler) Remove(key string, obj *v1beta1.CloudInit) (*v1beta1.CloudInit, error) {
 	if obj != nil {
 		return obj, nil
 	}
 
-	obj = &v1beta1.NodeConfig{}
+	obj = &v1beta1.CloudInit{}
 	obj.Namespace, obj.Name = kv.RSplit(key, "/")
 	obj.SetGroupVersionKind(a.gvk)
 
@@ -144,12 +144,12 @@ func (a *nodeConfigGeneratingHandler) Remove(key string, obj *v1beta1.NodeConfig
 		ApplyObjects()
 }
 
-func (a *nodeConfigGeneratingHandler) Handle(obj *v1beta1.NodeConfig, status v1beta1.NodeConfigStatus) (v1beta1.NodeConfigStatus, error) {
+func (a *cloudInitGeneratingHandler) Handle(obj *v1beta1.CloudInit, status v1beta1.CloudInitStatus) (v1beta1.CloudInitStatus, error) {
 	if !obj.DeletionTimestamp.IsZero() {
 		return status, nil
 	}
 
-	objs, newStatus, err := a.NodeConfigGeneratingHandler(obj, status)
+	objs, newStatus, err := a.CloudInitGeneratingHandler(obj, status)
 	if err != nil {
 		return newStatus, err
 	}
