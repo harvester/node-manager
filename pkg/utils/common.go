@@ -35,7 +35,7 @@ func GetTimesyncdConf() (*viper.Viper, error) {
 }
 
 func GetToMonitorServices() []string {
-	return []string{"NTP", "configFile"}
+	return []string{"NTP", "configFile", "cloudinit"}
 }
 
 func DbusPropertiesGet() string {
