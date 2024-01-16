@@ -22,6 +22,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 
+	"github.com/harvester/node-manager/pkg/controller/cloudinit"
 	"github.com/harvester/node-manager/pkg/controller/ksmtuned"
 	"github.com/harvester/node-manager/pkg/controller/nodeconfig"
 	ctlnodeharvester "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io"
@@ -158,6 +159,8 @@ func run(opt *option.Option) error {
 	}
 	nodecfg := nodectl.Node().V1beta1().NodeConfig()
 	nds := nodes.Core().V1().Node()
+	cloudinits := nodectl.Node().V1beta1().CloudInit()
+	events := nodes.Core().V1().Event()
 
 	var ksmtunedController *ksmtuned.Controller
 	run := func(ctx context.Context) {
@@ -181,13 +184,15 @@ func run(opt *option.Option) error {
 			logrus.Fatalf("failed to register ksmtuned controller: %s", err)
 		}
 
+		cloudinit.Register(ctx, opt.NodeName, cloudinits, nds.Cache(), events)
+
 		if err := start.All(ctx, opt.Threadiness, nodectl, nodes); err != nil {
 			logrus.Fatalf("error starting, %s", err.Error())
 		}
 	}
 
 	// start monitoring
-	monitorTemplate := monitor.NewMonitorTemplate(ctx, mtx, nodecfg, nds, opt.NodeName)
+	monitorTemplate := monitor.NewMonitorTemplate(ctx, mtx, nodecfg, nds, cloudinits, opt.NodeName)
 	monitorNnumbers := len(utils.GetToMonitorServices())
 
 	monitorModules := make([]interface{}, 0, monitorNnumbers)

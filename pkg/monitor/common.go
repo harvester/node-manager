@@ -23,20 +23,22 @@ const (
 )
 
 type Template struct {
-	context    context.Context
-	nodeName   string
-	nodecfgctl ctlv1.NodeConfigController
-	nodesctl   ctlnode.NodeController
-	mtx        *sync.Mutex
+	context      context.Context
+	nodeName     string
+	nodecfgctl   ctlv1.NodeConfigController
+	nodesctl     ctlnode.NodeController
+	cloudinitctl ctlv1.CloudInitController
+	mtx          *sync.Mutex
 }
 
-func NewMonitorTemplate(ctx context.Context, mtx *sync.Mutex, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, nodeName string) *Template {
+func NewMonitorTemplate(ctx context.Context, mtx *sync.Mutex, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, cloudinits ctlv1.CloudInitController, nodeName string) *Template {
 	return &Template{
-		context:    ctx,
-		nodeName:   nodeName,
-		nodecfgctl: nodecfg,
-		nodesctl:   nodes,
-		mtx:        mtx,
+		context:      ctx,
+		nodeName:     nodeName,
+		nodecfgctl:   nodecfg,
+		nodesctl:     nodes,
+		cloudinitctl: cloudinits,
+		mtx:          mtx,
 	}
 }
 
@@ -52,6 +54,8 @@ func InitServiceMonitor(template *Template, monitorName string) interface{} {
 		return NewNTPMonitor(template.context, template.mtx, template.nodecfgctl, template.nodesctl, template.nodeName, monitorName)
 	case "configfile":
 		return NewConfigFileMonitor(template.context, template.nodecfgctl, template.nodeName, monitorName)
+	case "cloudinit":
+		return NewCloudInitMonitor(template.context, monitorName, template.nodeName, template.cloudinitctl, template.nodesctl.Cache())
 	default:
 		return NewCommonMonitor(template.context, monitorName)
 	}

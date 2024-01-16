@@ -3,6 +3,7 @@ package monitor
 import (
 	"context"
 
+	"github.com/fsnotify/fsnotify"
 	gocommon "github.com/harvester/go-common"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -35,7 +36,10 @@ func NewConfigFileMonitor(ctx context.Context, nodecfg ctlv1.NodeConfigControlle
 
 func (monitor *ConfigFileMonitor) startMonitor() {
 	go func() {
-		gocommon.WatchFileChange(monitor.Context, monitor.genericHandler, monitorTargets)
+		handler := gocommon.FSNotifyHandlerFunc(func(event fsnotify.Event) {
+			monitor.genericHandler(event.Name)
+		})
+		gocommon.WatchFileChange(monitor.Context, gocommon.AnyOf(gocommon.FSNotifyHandlerFunc(handler), fsnotify.Write), monitorTargets)
 	}()
 }
 
