@@ -17,7 +17,7 @@ import (
 	"github.com/harvester/node-manager/pkg/mutator"
 )
 
-const webhookName = "node-manager-webhook"
+const webhookName = "harvester-node-manager-webhook"
 
 func main() {
 	var options config.Options
