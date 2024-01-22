@@ -23,9 +23,9 @@ spec:
           key: node-role.kubernetes.io/master
         - effect: NoExecute
           operator: Exists
-      serviceAccountName: harvester-node-manager
+      serviceAccountName: harvester-node-manager-webhook
       containers:
-        - name: node-manager-webhook
+        - name: harvester-node-manager-webhook
           image: rancher/harvester-node-manager-webhook:master-head
           imagePullPolicy: Always
           ports:
