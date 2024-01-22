@@ -40,6 +40,16 @@ subjects:
     name: harvester-node-manager
     namespace: harvester-system
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/name: harvester-node-manager-webhook
+    app.kubernetes.io/component: node-manager
+    app.kubernetes.io/version: 0.1.0
+  name: harvester-node-manager-webhook
+  namespace: harvester-system
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -75,5 +85,5 @@ roleRef:
   name: harvester-node-manager-webhook
 subjects:
   - kind: ServiceAccount
-    name: harvester-node-manager
+    name: harvester-node-manager-webhook
     namespace: harvester-system
