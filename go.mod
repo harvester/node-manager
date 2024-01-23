@@ -46,7 +46,7 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/harvester/webhook v0.1.3
+	github.com/harvester/webhook v0.1.4
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/sys v0.16.0
 )
