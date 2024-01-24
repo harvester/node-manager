@@ -265,8 +265,8 @@ steps:
     when:
       ref:
         include:
-          - refs/head/master
-          - refs/tags/*
+          - refs/heads/master
+          - refs/heads/release/v*
       event:
         - push
 
