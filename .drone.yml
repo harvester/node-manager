@@ -277,8 +277,8 @@ steps:
         from_secret: docker_username
       password:
         from_secret: docker_password
-      target: "rancher/harvester-node-manager-webhook:${DRONE_TAG}-head"
-      template: "rancher/harvester-node-manager-webhook:${DRONE_TAG}-head-OS-ARCH"
+      target: "rancher/harvester-node-manager-webhook:${DRONE_TAG}"
+      template: "rancher/harvester-node-manager-webhook:${DRONE_TAG}-OS-ARCH"
       ignore_missing: true
       platforms:
         - linux/amd64
