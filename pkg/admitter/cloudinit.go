@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/harvester/webhook/pkg/server/admission"
+	"gopkg.in/yaml.v3"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,6 +22,7 @@ var (
 	errFilenameTaken     = errors.New("filename already in use")
 	errProtectedFilename = errors.New("filename conflicts with a critical system-owned file")
 	errMissingExt        = errors.New("filename does not end in .yaml or .yml")
+	errNotYAML           = errors.New("could not parse document as yaml")
 )
 
 var builtinFilenameDenyList = []string{
@@ -83,6 +85,16 @@ func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit) error {
 
 	if taken {
 		return errFilenameTaken
+	}
+
+	var obj map[string]any
+	var typeErr *yaml.TypeError
+	err = yaml.Unmarshal([]byte(cloudinit.Spec.Contents), &obj)
+	if errors.As(err, &typeErr) {
+		return errNotYAML
+	}
+	if err != nil {
+		return err
 	}
 
 	return nil
