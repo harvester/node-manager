@@ -56,6 +56,7 @@ func TestCreate(t *testing.T) {
 		{"filename collision", v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}, errFilenameTaken},
 		{"conflicts with protected file", v1beta1.CloudInitSpec{Filename: "helloworld.yaml"}, errProtectedFilename},
 		{"not yaml or yml file ext", v1beta1.CloudInitSpec{Filename: "a"}, errMissingExt},
+		{"not yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "hello, there"}, errNotYAML},
 	}
 
 	for _, tt := range tests {
@@ -96,6 +97,7 @@ func TestUpdate(t *testing.T) {
 		{"filename collision", v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}, errFilenameTaken},
 		{"conflicts with protected file", v1beta1.CloudInitSpec{Filename: "helloworld.yaml"}, errProtectedFilename},
 		{"not yaml or yml file ext", v1beta1.CloudInitSpec{Filename: "a"}, errMissingExt},
+		{"not yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "hello, there"}, errNotYAML},
 	}
 
 	for _, tt := range tests {
