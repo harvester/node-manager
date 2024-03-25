@@ -1,6 +1,6 @@
 module github.com/harvester/node-manager
 
-go 1.20
+go 1.21
 
 replace (
 	k8s.io/api => k8s.io/api v0.24.14
@@ -37,7 +37,6 @@ require (
 	github.com/stretchr/testify v1.8.3
 	github.com/twpayne/go-vfs v1.7.2
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	k8s.io/api v0.28.0
 	k8s.io/apimachinery v0.28.0
