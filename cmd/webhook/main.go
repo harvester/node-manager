@@ -78,7 +78,7 @@ func main() {
 
 	app := cli.NewApp()
 	app.Flags = flags
-	app.Action = func(c *cli.Context) error {
+	app.Action = func(_ *cli.Context) error {
 		setLogLevel(logLevel)
 		err := runWebhookServer(ctx, cfg, &options)
 		return err
