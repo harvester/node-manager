@@ -94,7 +94,7 @@ func (k *ksmd) toggleMergeAcrossNodes(ctx context.Context, toggle uint) (err err
 	}
 
 	ctxCancel, cancel := context.WithCancel(ctx)
-	wait.UntilWithContext(ctxCancel, func(ctx context.Context) {
+	wait.UntilWithContext(ctxCancel, func(_ context.Context) {
 		var s *ksmdStatus
 		s, err = k.readKsmdStatus()
 		if err != nil || s.shared+s.sharing+s.unshared < 1 {
