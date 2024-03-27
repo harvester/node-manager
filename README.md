@@ -3,6 +3,12 @@ Harvester Node Manager
 
 A node manager helps to manage the host kernel configuration of the [Harvester](https://github.com/harvester/harvester) cluster, eg: KSM.
 
+## Branches
+
+- `master` branch is used for development and release.
+- `v0.1.x` branch is used for Harvester v1.2.x release.
+- `v0.2.x` branch is used for Harvester v1.3.x release.
+
 ## Manifests and Deploying
 The `./manifests` folder contains useful YAML manifests to use for deploying and developing the Harvester node manager. 
 This simply YAML deployment creates a Daemonset using the `rancher/harvester-node-manager` container.
