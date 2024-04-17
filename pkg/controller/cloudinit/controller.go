@@ -180,6 +180,17 @@ func (c *controller) updateStatus(node *corev1.Node, cloudInitObj *cloudinitv1.C
 		cond := &conds[i]
 		prev := oldConds[cond.Type]
 
+		// Only retain the LastTransitionTime when it is not the first time
+		// processing this metav1.Cond.
+		var zero metav1.Condition
+		if prev != zero &&
+			cond.Status == prev.Status &&
+			cond.Reason == prev.Reason &&
+			cond.Message == prev.Message {
+			cond.LastTransitionTime = prev.LastTransitionTime
+			continue
+		}
+
 		switch cond.Type {
 		case string(cloudinitv1.CloudInitFilePresent):
 			if createdAt.After(cond.LastTransitionTime.Time) {
@@ -190,10 +201,6 @@ func (c *controller) updateStatus(node *corev1.Node, cloudInitObj *cloudinitv1.C
 				cond.LastTransitionTime = metav1.NewTime(modifiedAt)
 			}
 		case string(cloudinitv1.CloudInitApplicable):
-			if prev.Status == cond.Status && prev.Message == cond.Message && prev.Reason == cond.Reason {
-				cond.LastTransitionTime = prev.LastTransitionTime
-				break
-			}
 			cond.LastTransitionTime = metav1.NewTime(now)
 		}
 	}
