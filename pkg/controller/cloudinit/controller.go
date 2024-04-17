@@ -36,6 +36,11 @@ const (
 	eventReasonReconcile = "CloudInitFileModified"
 	eventActionRemove    = "RemoveFile"
 	eventReasonRemove    = "CloudInitNotApplicable"
+
+	// This is mainly used for detecting a "zero value" for timestamps
+	// in a call to stat, where 0 means it has been 0 seconds since the
+	// unix epoch.
+	epoch int64 = 0
 )
 
 type controller struct {
@@ -176,6 +181,14 @@ func (c *controller) updateStatus(node *corev1.Node, cloudInitObj *cloudinitv1.C
 	}
 
 	now := time.Now()
+
+	if createdAt.Unix() == epoch {
+		createdAt = now
+	}
+	if modifiedAt.Unix() == epoch {
+		modifiedAt = now
+	}
+
 	for i := range conds {
 		cond := &conds[i]
 		prev := oldConds[cond.Type]
