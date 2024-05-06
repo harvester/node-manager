@@ -7,5 +7,3 @@ cd $(dirname $0)
 ./test
 ./validate
 ./validate-ci
-./package
-./package-webhook
