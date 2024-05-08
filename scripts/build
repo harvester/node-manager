@@ -13,7 +13,7 @@ fi
 LINKFLAGS="-X github.com/harvester/node-manager/pkg/version.Version=$VERSION
            -X github.com/harvester/node-manager/pkg/version.GitCommit=$COMMIT $LINKFLAGS"
 
-CGO_ENABLED=0 go build -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o bin/harvester-node-manager
+GOARCH="amd64" CGO_ENABLED=0 go build -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o bin/harvester-node-manager-amd64
 if [ "$CROSS" = "true" ] && [ "$ARCH" = "amd64" ]; then
     GOOS=darwin go build -ldflags "$LINKFLAGS" -o bin/harvester-node-manager-darwin
     GOOS=windows go build -ldflags "$LINKFLAGS" -o bin/harvester-node-manager-windows
