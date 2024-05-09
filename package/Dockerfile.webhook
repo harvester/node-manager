@@ -14,5 +14,5 @@ RUN if [ "$TARGETPLATFORM" != "linux/amd64" ] && [ "$TARGETPLATFORM" != "linux/a
 
 ENV ARCH=${TARGETPLATFORM#linux/}
 
-COPY bin/harvester-node-manager-webhook-${ARCH} /usr/bin/
+COPY bin/harvester-node-manager-webhook-${ARCH} /usr/bin/harvester-node-manager-webhook
 CMD ["harvester-node-manager-webhook"]
