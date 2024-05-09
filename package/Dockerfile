@@ -14,5 +14,5 @@ RUN if [ "$TARGETPLATFORM" != "linux/amd64" ]; then \
 
 ENV ARCH=${TARGETPLATFORM#linux/}
 
-COPY bin/harvester-node-manager-${ARCH} /usr/bin/
+COPY bin/harvester-node-manager-${ARCH} /usr/bin/harvester-node-manager
 CMD ["harvester-node-manager"]
