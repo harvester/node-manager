@@ -20,11 +20,6 @@ build() {
     for arch in "amd64" "arm64"; do
         GOARCH="$arch" CGO_ENABLED=0 go build -ldflags "$LINKFLAGS $OTHER_LINKFLAGS" -o "bin/$name-$arch" "$pkg"
     done
-
-    if [ "$CROSS" = "true" ] && [ "$ARCH" = "amd64" ]; then
-        GOOS=darwin go build -ldflags "$LINKFLAGS" -o "bin/$name-darwin" "$pkg"
-        GOOS=windows go build -ldflags "$LINKFLAGS" -o "bin/$name-windows" "$pkg"
-    fi
 }
 
 build "harvester-node-manager" "."
