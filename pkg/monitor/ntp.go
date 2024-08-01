@@ -11,7 +11,7 @@ import (
 
 	"github.com/godbus/dbus/v5"
 	gocommon "github.com/harvester/go-common"
-	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
+	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 

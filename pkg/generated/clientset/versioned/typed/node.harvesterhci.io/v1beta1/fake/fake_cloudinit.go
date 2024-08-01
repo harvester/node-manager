@@ -24,7 +24,6 @@ import (
 	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -35,9 +34,9 @@ type FakeCloudInits struct {
 	Fake *FakeNodeV1beta1
 }
 
-var cloudinitsResource = schema.GroupVersionResource{Group: "node.harvesterhci.io", Version: "v1beta1", Resource: "cloudinits"}
+var cloudinitsResource = v1beta1.SchemeGroupVersion.WithResource("cloudinits")
 
-var cloudinitsKind = schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "CloudInit"}
+var cloudinitsKind = v1beta1.SchemeGroupVersion.WithKind("CloudInit")
 
 // Get takes name of the cloudInit, and returns the corresponding cloudInit object, and an error if there is any.
 func (c *FakeCloudInits) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.CloudInit, err error) {

@@ -20,13 +20,14 @@ package v1beta1
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
-	"github.com/rancher/wrangler/pkg/apply"
-	"github.com/rancher/wrangler/pkg/condition"
-	"github.com/rancher/wrangler/pkg/generic"
-	"github.com/rancher/wrangler/pkg/kv"
+	"github.com/rancher/wrangler/v3/pkg/apply"
+	"github.com/rancher/wrangler/v3/pkg/condition"
+	"github.com/rancher/wrangler/v3/pkg/generic"
+	"github.com/rancher/wrangler/v3/pkg/kv"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -48,10 +49,14 @@ type CloudInitCache interface {
 	generic.NonNamespacedCacheInterface[*v1beta1.CloudInit]
 }
 
+// CloudInitStatusHandler is executed for every added or modified CloudInit. Should return the new status to be updated
 type CloudInitStatusHandler func(obj *v1beta1.CloudInit, status v1beta1.CloudInitStatus) (v1beta1.CloudInitStatus, error)
 
+// CloudInitGeneratingHandler is the top-level handler that is executed for every CloudInit event. It extends CloudInitStatusHandler by a returning a slice of child objects to be passed to apply.Apply
 type CloudInitGeneratingHandler func(obj *v1beta1.CloudInit, status v1beta1.CloudInitStatus) ([]runtime.Object, v1beta1.CloudInitStatus, error)
 
+// RegisterCloudInitStatusHandler configures a CloudInitController to execute a CloudInitStatusHandler for every events observed.
+// If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
 func RegisterCloudInitStatusHandler(ctx context.Context, controller CloudInitController, condition condition.Cond, name string, handler CloudInitStatusHandler) {
 	statusHandler := &cloudInitStatusHandler{
 		client:    controller,
@@ -61,6 +66,8 @@ func RegisterCloudInitStatusHandler(ctx context.Context, controller CloudInitCon
 	controller.AddGenericHandler(ctx, name, generic.FromObjectHandlerToHandler(statusHandler.sync))
 }
 
+// RegisterCloudInitGeneratingHandler configures a CloudInitController to execute a CloudInitGeneratingHandler for every events observed, passing the returned objects to the provided apply.Apply.
+// If a non-empty condition is provided, it will be updated in the status conditions for every handler execution
 func RegisterCloudInitGeneratingHandler(ctx context.Context, controller CloudInitController, apply apply.Apply,
 	condition condition.Cond, name string, handler CloudInitGeneratingHandler, opts *generic.GeneratingHandlerOptions) {
 	statusHandler := &cloudInitGeneratingHandler{
@@ -82,6 +89,7 @@ type cloudInitStatusHandler struct {
 	handler   CloudInitStatusHandler
 }
 
+// sync is executed on every resource addition or modification. Executes the configured handlers and sends the updated status to the Kubernetes API
 func (a *cloudInitStatusHandler) sync(key string, obj *v1beta1.CloudInit) (*v1beta1.CloudInit, error) {
 	if obj == nil {
 		return obj, nil
@@ -127,8 +135,10 @@ type cloudInitGeneratingHandler struct {
 	opts  generic.GeneratingHandlerOptions
 	gvk   schema.GroupVersionKind
 	name  string
+	seen  sync.Map
 }
 
+// Remove handles the observed deletion of a resource, cascade deleting every associated resource previously applied
 func (a *cloudInitGeneratingHandler) Remove(key string, obj *v1beta1.CloudInit) (*v1beta1.CloudInit, error) {
 	if obj != nil {
 		return obj, nil
@@ -138,12 +148,17 @@ func (a *cloudInitGeneratingHandler) Remove(key string, obj *v1beta1.CloudInit) 
 	obj.Namespace, obj.Name = kv.RSplit(key, "/")
 	obj.SetGroupVersionKind(a.gvk)
 
+	if a.opts.UniqueApplyForResourceVersion {
+		a.seen.Delete(key)
+	}
+
 	return nil, generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
 		WithOwner(obj).
 		WithSetID(a.name).
 		ApplyObjects()
 }
 
+// Handle executes the configured CloudInitGeneratingHandler and pass the resulting objects to apply.Apply, finally returning the new status of the resource
 func (a *cloudInitGeneratingHandler) Handle(obj *v1beta1.CloudInit, status v1beta1.CloudInitStatus) (v1beta1.CloudInitStatus, error) {
 	if !obj.DeletionTimestamp.IsZero() {
 		return status, nil
@@ -153,9 +168,41 @@ func (a *cloudInitGeneratingHandler) Handle(obj *v1beta1.CloudInit, status v1bet
 	if err != nil {
 		return newStatus, err
 	}
+	if !a.isNewResourceVersion(obj) {
+		return newStatus, nil
+	}
 
-	return newStatus, generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
+	err = generic.ConfigureApplyForObject(a.apply, obj, &a.opts).
 		WithOwner(obj).
 		WithSetID(a.name).
 		ApplyObjects(objs...)
+	if err != nil {
+		return newStatus, err
+	}
+	a.storeResourceVersion(obj)
+	return newStatus, nil
+}
+
+// isNewResourceVersion detects if a specific resource version was already successfully processed.
+// Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
+func (a *cloudInitGeneratingHandler) isNewResourceVersion(obj *v1beta1.CloudInit) bool {
+	if !a.opts.UniqueApplyForResourceVersion {
+		return true
+	}
+
+	// Apply once per resource version
+	key := obj.Namespace + "/" + obj.Name
+	previous, ok := a.seen.Load(key)
+	return !ok || previous != obj.ResourceVersion
+}
+
+// storeResourceVersion keeps track of the latest resource version of an object for which Apply was executed
+// Only used if UniqueApplyForResourceVersion is set in generic.GeneratingHandlerOptions
+func (a *cloudInitGeneratingHandler) storeResourceVersion(obj *v1beta1.CloudInit) {
+	if !a.opts.UniqueApplyForResourceVersion {
+		return
+	}
+
+	key := obj.Namespace + "/" + obj.Name
+	a.seen.Store(key, obj.ResourceVersion)
 }
