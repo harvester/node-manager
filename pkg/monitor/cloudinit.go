@@ -8,7 +8,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	gocommon "github.com/harvester/go-common"
-	ctlnodev1 "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
+	ctlnodev1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/labels"
 

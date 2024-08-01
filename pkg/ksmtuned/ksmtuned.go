@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rancher/wrangler/pkg/ticker"
+	"github.com/rancher/wrangler/v3/pkg/ticker"
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/sirupsen/logrus"
 

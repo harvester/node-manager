@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	ctlnodev1 "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
+	ctlnodev1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	corev1 "k8s.io/api/core/v1"

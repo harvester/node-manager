@@ -33,8 +33,7 @@ type Interface interface {
 	NodeV1beta1() nodev1beta1.NodeV1beta1Interface
 }
 
-// Clientset contains the clients for groups. Each group has exactly one
-// version included in a Clientset.
+// Clientset contains the clients for groups.
 type Clientset struct {
 	*discovery.DiscoveryClient
 	nodeV1beta1 *nodev1beta1.NodeV1beta1Client

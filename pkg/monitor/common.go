@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
+	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 
 	ctlv1 "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io/v1beta1"

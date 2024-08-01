@@ -10,7 +10,7 @@ import (
 	"time"
 
 	gocommon "github.com/harvester/go-common"
-	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core/v1"
+	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 
 	nodeconfigv1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"

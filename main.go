@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/ehazlett/simplelog"
-	ctlnode "github.com/rancher/wrangler/pkg/generated/controllers/core"
-	"github.com/rancher/wrangler/pkg/signals"
-	"github.com/rancher/wrangler/pkg/start"
+	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core"
+	"github.com/rancher/wrangler/v3/pkg/signals"
+	"github.com/rancher/wrangler/v3/pkg/start"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 	"k8s.io/client-go/tools/clientcmd"
