@@ -219,49 +219,8 @@ func (handler *NTPHandler) RestartService() error {
 func (handler *NTPHandler) UpdateNTPConfigPersistence() error {
 	logrus.Infof("Prepare to make NTP configuration persistence ...")
 	ntpServer := handler.NTPConfig.NTPServers
-	_, err := os.Stat(settingsOEMPath)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("stat NTP OEM file failed. err: %v", err)
-	}
-
 	ntpStages := generateNTPStages(ntpServer)
-	settings := utils.GenerateOEMTemplate()
-	settings.Stages = make(map[string][]schema.Stage)
-	if os.IsNotExist(err) {
-		if _, found := settings.Stages[yipStageInitramfs]; !found {
-			settings.Stages[yipStageInitramfs] = []schema.Stage{ntpStages}
-		} else {
-			settings.Stages[yipStageInitramfs] = append(settings.Stages[yipStageInitramfs], ntpStages)
-		}
-	} else {
-		// backup current config
-		if _, err := files.BackupFile(settingsOEMPath); err != nil {
-			return fmt.Errorf("backup NTP OEM file failed. err: %v", err)
-		}
-		// load and overwrite
-		err = utils.LoadYipConfigToTarget(settingsOEMPath, settings)
-		if err != nil {
-			return fmt.Errorf("load OEM file failed to YIP format. err: %v", err)
-		}
-		logrus.Debugf("Loaded settings from file %s, content: %+v", settingsOEMPath, settings)
-		currentInitramfs := settings.Stages[yipStageInitramfs]
-		for id, stage := range currentInitramfs {
-			if stage.Name == NTPName {
-				currentInitramfs[id] = ntpStages
-				break
-			}
-		}
-	}
-	logrus.Infof("Prepare to update settings to persistent file: %+v", settings)
-	tmpFileName, err := files.GenerateYAMLTempFileWithDir(settings, "settings", oemPath)
-	if err != nil {
-		return fmt.Errorf("generate temp YAML file failed. err: %v", err)
-	}
-	if err = os.Rename(tmpFileName, settingsOEMPath); err != nil {
-		return fmt.Errorf("rename temp file to OEM path failed. err: %v", err)
-	}
-
-	return nil
+	return UpdatePersistentOEMSettings(ntpStages)
 }
 
 func generateNTPStages(ntpserver string) schema.Stage {
@@ -277,53 +236,7 @@ func generateNTPStages(ntpserver string) schema.Stage {
 }
 
 func RemovePersistentNTPConfig() error {
-	yipConfig, err := utils.LoadYipConfig(settingsOEMPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return fmt.Errorf("load OEM settings failed. err: %v", err)
-	}
-	logrus.Debugf("Loaded yipConfig: %+v, %p", yipConfig, yipConfig)
-
-	pos := -1
-	if _, found := yipConfig.Stages[yipStageInitramfs]; !found {
-		// this moment, we only have `initramfs` stage, so we could remove all OEM settings files.
-		logrus.Infof("No `initramfs` stage found, remove all OEM settings files.")
-		return files.RemoveFiles(settingsOEMPath, settingsOEMPathBackupPath)
-	}
-
-	for id, stage := range yipConfig.Stages[yipStageInitramfs] {
-		if stage.Name == NTPName {
-			pos = id
-			break
-		}
-	}
-
-	if pos >= 0 {
-		stages := yipConfig.Stages[yipStageInitramfs]
-		stages = append(stages[:pos], stages[pos+1:]...)
-		if len(stages) == 0 {
-			logrus.Infof("No other stages found, remove all OEM settings files.")
-			return files.RemoveFiles(settingsOEMPath, settingsOEMPathBackupPath)
-		}
-		yipConfig.Stages[yipStageInitramfs] = stages
-	}
-
-	// we still have other stages, so we need to backup/update OEM settings files
-	if _, err := files.BackupFile(settingsOEMPath); err != nil {
-		return fmt.Errorf("backup NTP OEM file failed. err: %v", err)
-	}
-
-	logrus.Infof("Prepare to update new settings to persistent files: %+v", yipConfig)
-	tmpFileName, err := files.GenerateYAMLTempFileWithDir(yipConfig, "settings", oemPath)
-	if err != nil {
-		return fmt.Errorf("generate temp YAML file failed. err: %v", err)
-	}
-	if err = os.Rename(tmpFileName, settingsOEMPath); err != nil {
-		return fmt.Errorf("rename temp file to OEM path failed. err: %v", err)
-	}
-	return nil
+	return RemovePersistentOEMSettings(NTPName)
 }
 
 func CheckConfigApplied(configName string, status nodeconfigv1.NodeConfigStatus) bool {
