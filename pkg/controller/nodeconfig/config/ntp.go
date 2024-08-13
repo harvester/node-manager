@@ -33,7 +33,6 @@ const (
 	timesyncdConfigOriginPath = "/host/etc/systemd/timesyncd.conf.origin"
 	timesyncdService          = "systemd-timesyncd"
 	timeWaitSyncService       = "systemd-time-wait-sync"
-	oemPath                   = "/host/oem/"
 	configNTPServer           = "ntpServer"
 )
 
