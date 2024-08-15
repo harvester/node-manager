@@ -2,7 +2,9 @@
 
 FROM registry.suse.com/bci/bci-base:15.5
 
+# kmod -> for `modprobe` command
 RUN zypper -n rm container-suseconnect && \
+    zypper -n install kmod && \
     zypper -n clean -a && rm -rf /tmp/* /var/tmp/* /usr/share/doc/packages/*
 
 ARG TARGETPLATFORM
