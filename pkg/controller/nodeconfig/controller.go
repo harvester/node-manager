@@ -57,6 +57,32 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 		return nil, nil
 	}
 
+	// V2 Data Engine related handling.  This is intentionally not bothering
+	// to check whether the engine is already enabled or not, it runs on any
+	// change to the node config, even if that change wasn't related to the
+	// longhorn settings.  This is mostly harmless, because if the engine is
+	// already in the state about to be applied, re-applying that state is
+	// effectively a no-op, and I'd rather keep the code simple than add
+	// annotations for whether or not we already enabled the engine.
+	// The one wrinkle is that when allocating (or deallocating) hugepages,
+	// the kubelet needs to be restarted to pick up the change and reflect
+	// that in node.status.capacity.hugepages-2Mi, so that Longhorn can
+	// query that value when lhs/v2-data-engine is set to true.  This restart
+	// logic is handled inside EnableV2DataEngine() and DisableV2DataEngine().
+	if nodecfg.Spec.LonghornConfig != nil && nodecfg.Spec.LonghornConfig.EnableV2DataEngine {
+		if err := config.EnableV2DataEngine(); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err": err.Error(),
+			}).Error("Failed to enable V2 Data Engine")
+		}
+	} else {
+		if err := config.DisableV2DataEngine(); err != nil {
+			logrus.WithFields(logrus.Fields{
+				"err": err.Error(),
+			}).Error("Failed to disable V2 Data Engine")
+		}
+	}
+
 	// NTP related handling
 	appliedConfig := nodecfg.ObjectMeta.Annotations[ConfigAppliedAnnotation]
 	ntpConfigHandler := config.NewNTPConfigHandler(c.mtx, c.NodeClient, confName, nodecfg.Spec.NTPConfig, appliedConfig)
@@ -128,6 +154,12 @@ func (c *Controller) OnNodeConfigRemove(key string, nodecfg *nodeconfigv1.NodeCo
 		logrus.Errorf("Remove persistent NTP config fail. err: %v", err)
 		c.NodeConfigs.EnqueueAfter(nodecfg.Namespace, nodecfg.Name, enqueueJitter())
 		return nil, err
+	}
+	if err := config.DisableV2DataEngine(); err != nil {
+		logrus.WithFields(logrus.Fields{
+			"err": err.Error(),
+		}).Error("Failed to disable V2 Data Engine")
+		c.NodeConfigs.EnqueueAfter(nodecfg.Namespace, nodecfg.Name, enqueueJitter())
 	}
 	return nil, nil
 }

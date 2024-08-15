@@ -50,9 +50,12 @@ spec:
               cpu: 10m
               memory: 64Mi
           volumeMounts:
-            - mountPath: /sys/kernel/mm/ksm
-              name: ksm
+            - mountPath: /sys/kernel/mm
+              name: mm
               readOnly: false
+            - mountPath: /lib/modules
+              name: modules
+              readOnly: true
             - mountPath: /host/proc
               name: proc
               readOnly: true
@@ -64,9 +67,12 @@ spec:
             - mountPath: /host/oem
               name: host-oem
       volumes:
-        - name: ksm
+        - name: mm
           hostPath:
-            path: /sys/kernel/mm/ksm
+            path: /sys/kernel/mm
+        - name: modules
+          hostPath:
+            path: /lib/modules
         - name: proc
           hostPath:
             path: /proc
