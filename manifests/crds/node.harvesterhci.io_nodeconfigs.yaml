@@ -39,6 +39,11 @@ spec:
             type: object
           spec:
             properties:
+              longhornConfig:
+                properties:
+                  enableV2DataEngine:
+                    type: boolean
+                type: object
               ntpConfigs:
                 properties:
                   ntpServers:
