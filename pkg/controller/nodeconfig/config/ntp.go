@@ -12,7 +12,8 @@ import (
 	"strings"
 	"sync"
 
-	gocommon "github.com/harvester/go-common"
+	"github.com/harvester/go-common/files"
+	"github.com/harvester/go-common/sys"
 	"github.com/mudler/yip/pkg/schema"
 	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
@@ -80,7 +81,7 @@ func (handler *NTPHandler) DoNTPUpdate(forceUpdate bool) (bool, error) {
 	_, err := os.Stat(timesyncdConfigOriginPath)
 	if os.IsNotExist(err) {
 		logrus.Infof("Backup original ntp config ...")
-		if _, err := gocommon.BackupFileToDirWithSuffix(timesyncdConfigPath, "", "origin"); err != nil {
+		if _, err := files.BackupFileToDirWithSuffix(timesyncdConfigPath, "", "origin"); err != nil {
 			return false, fmt.Errorf("backup the original ntp config failed. err: %v", err)
 		}
 	}
@@ -128,7 +129,7 @@ func (handler *NTPHandler) updateNTPConfig() error {
 		return fmt.Errorf("generate NTP Config Raw Buffer failed. err: %v", err)
 	}
 
-	tempNTPConfigName, err := gocommon.GenerateTempFileWithDir([]byte(raw), "timesyncd.conf", utils.SystemdConfigPath)
+	tempNTPConfigName, err := files.GenerateTempFileWithDir([]byte(raw), "timesyncd.conf", utils.SystemdConfigPath)
 	if err != nil {
 		return fmt.Errorf("generate temp NTP config failed. err: %v", err)
 	}
@@ -179,7 +180,7 @@ func (handler *NTPHandler) UpdateNodeNTPAnnotation() error {
 }
 
 func (handler *NTPHandler) backupNTPConfig() error {
-	if _, err := gocommon.BackupFile(timesyncdConfigPath); err != nil {
+	if _, err := files.BackupFile(timesyncdConfigPath); err != nil {
 		return fmt.Errorf("backup NTP config failed. err: %v", err)
 	}
 	return nil
@@ -212,7 +213,7 @@ func NTPConfigRollback() error {
 
 func (handler *NTPHandler) RestartService() error {
 	logrus.Infof("Restart systemd-timesyncd service ...")
-	return gocommon.RestartService(systemdTimesyncdService)
+	return sys.RestartService(systemdTimesyncdService)
 }
 
 // make NTP configuration persistence, using 99_settings.yaml to make sure we are later than 99_oem.yaml
@@ -235,7 +236,7 @@ func (handler *NTPHandler) UpdateNTPConfigPersistence() error {
 		}
 	} else {
 		// backup current config
-		if _, err := gocommon.BackupFile(settingsOEMPath); err != nil {
+		if _, err := files.BackupFile(settingsOEMPath); err != nil {
 			return fmt.Errorf("backup NTP OEM file failed. err: %v", err)
 		}
 		// load and overwrite
@@ -253,7 +254,7 @@ func (handler *NTPHandler) UpdateNTPConfigPersistence() error {
 		}
 	}
 	logrus.Infof("Prepare to update settings to persistent file: %+v", settings)
-	tmpFileName, err := gocommon.GenerateYAMLTempFileWithDir(settings, "settings", oemPath)
+	tmpFileName, err := files.GenerateYAMLTempFileWithDir(settings, "settings", oemPath)
 	if err != nil {
 		return fmt.Errorf("generate temp YAML file failed. err: %v", err)
 	}
@@ -290,7 +291,7 @@ func RemovePersistentNTPConfig() error {
 	if _, found := yipConfig.Stages[yipStageInitramfs]; !found {
 		// this moment, we only have `initramfs` stage, so we could remove all OEM settings files.
 		logrus.Infof("No `initramfs` stage found, remove all OEM settings files.")
-		return gocommon.RemoveFiles(settingsOEMPath, settingsOEMPathBackupPath)
+		return files.RemoveFiles(settingsOEMPath, settingsOEMPathBackupPath)
 	}
 
 	for id, stage := range yipConfig.Stages[yipStageInitramfs] {
@@ -305,18 +306,18 @@ func RemovePersistentNTPConfig() error {
 		stages = append(stages[:pos], stages[pos+1:]...)
 		if len(stages) == 0 {
 			logrus.Infof("No other stages found, remove all OEM settings files.")
-			return gocommon.RemoveFiles(settingsOEMPath, settingsOEMPathBackupPath)
+			return files.RemoveFiles(settingsOEMPath, settingsOEMPathBackupPath)
 		}
 		yipConfig.Stages[yipStageInitramfs] = stages
 	}
 
 	// we still have other stages, so we need to backup/update OEM settings files
-	if _, err := gocommon.BackupFile(settingsOEMPath); err != nil {
+	if _, err := files.BackupFile(settingsOEMPath); err != nil {
 		return fmt.Errorf("backup NTP OEM file failed. err: %v", err)
 	}
 
 	logrus.Infof("Prepare to update new settings to persistent files: %+v", yipConfig)
-	tmpFileName, err := gocommon.GenerateYAMLTempFileWithDir(yipConfig, "settings", oemPath)
+	tmpFileName, err := files.GenerateYAMLTempFileWithDir(yipConfig, "settings", oemPath)
 	if err != nil {
 		return fmt.Errorf("generate temp YAML file failed. err: %v", err)
 	}

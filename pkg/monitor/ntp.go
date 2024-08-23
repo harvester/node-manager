@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/godbus/dbus/v5"
-	gocommon "github.com/harvester/go-common"
+	"github.com/harvester/go-common/sys"
 	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,10 +90,10 @@ func (monitor *NTPMonitor) startMonitor() {
 	logrus.Infof("Start WatchDbus Signal...")
 
 	go func() {
-		gocommon.WatchDBusSignal(monitor.Context, utils.DbusPropertiesIface, utils.DbusTimedate1ObjectPath, monitor.handleTimedate1Signal)
+		sys.WatchDBusSignal(monitor.Context, utils.DbusPropertiesIface, utils.DbusTimedate1ObjectPath, monitor.handleTimedate1Signal)
 	}()
 	go func() {
-		gocommon.WatchDBusSignal(monitor.Context, utils.DbusPropertiesIface, utils.DbusTimesync1ObjectPath, monitor.handleTimesync1Signal)
+		sys.WatchDBusSignal(monitor.Context, utils.DbusPropertiesIface, utils.DbusTimesync1ObjectPath, monitor.handleTimesync1Signal)
 	}()
 	go func() {
 		defer monitor.ticker.Stop()
