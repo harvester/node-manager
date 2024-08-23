@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	gocommon "github.com/harvester/go-common"
+	"github.com/harvester/go-common/sys"
 	ctlnodev1 "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/labels"
@@ -39,7 +39,7 @@ func NewCloudInitMonitor(ctx context.Context, monitorName, nodeName string, clou
 
 func (m *CloudInitMonitor) startMonitor() {
 	go func() {
-		gocommon.WatchFileChange(m.ctx, gocommon.FSNotifyHandlerFunc(m.handleFSNotify), []string{cloudinit.Directory})
+		sys.WatchFileChange(m.ctx, sys.FSNotifyHandlerFunc(m.handleFSNotify), []string{cloudinit.Directory})
 	}()
 }
 

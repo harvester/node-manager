@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	gocommon "github.com/harvester/go-common"
+	"github.com/harvester/go-common/common"
 	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 
@@ -134,7 +134,7 @@ func (c *Controller) OnNodeConfigRemove(key string, nodecfg *nodeconfigv1.NodeCo
 
 func enqueueJitter() time.Duration {
 	baseDelay := 7
-	randNum, err := gocommon.GenRandNumber(3)
+	randNum, err := common.GenRandNumber(3)
 	if err != nil {
 		logrus.Errorf("Failed to generate random number, use `0` as randNumber: %v", err)
 	}

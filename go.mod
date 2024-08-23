@@ -25,7 +25,7 @@ replace (
 require (
 	github.com/ehazlett/simplelog v0.0.0-20200226020431-d374894e92a4
 	github.com/godbus/dbus/v5 v5.1.0
-	github.com/harvester/go-common v0.0.0-20231214093547-3e3f7fdd879a
+	github.com/harvester/go-common v0.0.0-20240822134235-198df47889ca
 	github.com/mudler/yip v1.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.16.0
@@ -36,7 +36,6 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.9.0
 	github.com/twpayne/go-vfs v1.7.2
-	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
@@ -48,7 +47,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/harvester/webhook v0.1.4
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/sys v0.19.0
+	golang.org/x/sys v0.20.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -94,7 +93,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.4.0 // indirect
 	github.com/prometheus/common v0.44.0 // indirect
-	github.com/prometheus/procfs v0.10.1 // indirect
+	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rancher/dynamiclistener v0.3.5 // indirect
 	github.com/rancher/wrangler v1.1.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
