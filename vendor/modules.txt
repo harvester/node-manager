@@ -80,7 +80,7 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
 github.com/gorilla/mux
-# github.com/harvester/go-common v0.0.0-20240822134235-198df47889ca
+# github.com/harvester/go-common v0.0.0-20240903083523-9576346cda75
 ## explicit; go 1.22
 github.com/harvester/go-common/common
 github.com/harvester/go-common/files
