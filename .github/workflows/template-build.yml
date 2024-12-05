@@ -9,9 +9,56 @@ on:
         type: boolean
 env:
   PLATFORMS: linux/amd64,linux/arm64
+  LIBVIRT_DEFAULT_URI: "qemu:///system"
 
 jobs:
+  ci:
+    runs-on:
+      - self-hosted
+      - golang
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: "Run validations"
+        run: |
+          make validate
+          make validate-ci
+
+      - name: "Build node manager"
+        run: |
+          BUILD_FOR_CI=true make
+
+      - name: "Setup vagrant rancherd"
+        run: |
+          rm -rf nm-vagrant-rancherd
+          git clone https://github.com/harvester/vagrant-rancherd nm-vagrant-rancherd
+          cd nm-vagrant-rancherd
+          cat ./settings.yaml
+          echo "VAGRANT_RANCHERD_HOME=$(pwd)" >> $GITHUB_ENV
+          ./new_cluster.sh
+
+      - name: "Deploy latest node manager"
+        run: |
+          ./ci/deploy_nm.sh $VAGRANT_RANCHERD_HOME
+
+      - name: "Upgrade node manager to dev version"
+        run: |
+          ./ci/upgrade_nm.sh $VAGRANT_RANCHERD_HOME
+
+      - name: "Run integration tests"
+        run: |
+          VAGRANT_RANCHERD_HOME=$VAGRANT_RANCHERD_HOME go test -v ./tests/... -count=1
+
+      - name: "Tear Down / Cleanup"
+        if: always()
+        run: |
+          cd $VAGRANT_RANCHERD_HOME
+          vagrant destroy -f --parallel
+
   dapper-build:
+    needs: ci
+    if: ${{ inputs.push == true }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -37,7 +84,6 @@ jobs:
 
       - name: Read Secrets
         uses: rancher-eio/read-vault-secrets@main
-        if: ${{ inputs.push == true }}
         with:
           secrets: |
             secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
@@ -45,7 +91,6 @@ jobs:
 
       - name: Login to Docker Hub
         uses: docker/login-action@v3
-        if: ${{ inputs.push == true }}
         with:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ env.DOCKER_PASSWORD }}
