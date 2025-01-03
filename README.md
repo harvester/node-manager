@@ -8,13 +8,14 @@ A node manager helps to manage the host kernel configuration of the [Harvester](
 - `master` branch is used for development and release.
 - `v0.1.x` branch is used for Harvester v1.2.x release.
 - `v0.2.x` branch is used for Harvester v1.3.x release.
+- `v0.3.x` branch is used for Harvester v1.4.x release.
 
 ## Manifests and Deploying
-The `./manifests` folder contains useful YAML manifests to use for deploying and developing the Harvester node manager. 
+The `./manifests` folder contains useful YAML manifests to use for deploying and developing the Harvester node manager.
 This simply YAML deployment creates a Daemonset using the `rancher/harvester-node-manager` container.
 
 ## License
-Copyright (c) 2022 [Rancher Labs, Inc.](http://rancher.com)
+Copyright (c) 2025 [Rancher Labs, Inc.](http://rancher.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
