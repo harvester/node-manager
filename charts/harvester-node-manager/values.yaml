@@ -3,9 +3,9 @@
 # Declare variables to be passed into your templates.
 image:
   repository: rancher/harvester-node-manager
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "master-head"
 
 resources:
   limits:
@@ -28,4 +28,4 @@ webhook:
   image:
     repository: rancher/harvester-node-manager-webhook
     pullPolicy: Always
-    tag: "v0.3.0"
+    tag: "master-head"
