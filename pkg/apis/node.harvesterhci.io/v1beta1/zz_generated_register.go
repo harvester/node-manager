@@ -29,6 +29,7 @@ import (
 
 var (
 	CloudInitResourceName  = "cloudinits"
+	HugepageResourceName   = "hugepages"
 	KsmtunedResourceName   = "ksmtuneds"
 	NodeConfigResourceName = "nodeconfigs"
 )
@@ -56,6 +57,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
 		&CloudInit{},
 		&CloudInitList{},
+		&Hugepage{},
+		&HugepageList{},
 		&Ksmtuned{},
 		&KsmtunedList{},
 		&NodeConfig{},

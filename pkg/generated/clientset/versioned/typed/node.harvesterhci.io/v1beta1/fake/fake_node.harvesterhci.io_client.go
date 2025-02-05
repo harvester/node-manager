@@ -32,6 +32,10 @@ func (c *FakeNodeV1beta1) CloudInits() v1beta1.CloudInitInterface {
 	return newFakeCloudInits(c)
 }
 
+func (c *FakeNodeV1beta1) Hugepages() v1beta1.HugepageInterface {
+	return &FakeHugepages{c}
+}
+
 func (c *FakeNodeV1beta1) Ksmtuneds() v1beta1.KsmtunedInterface {
 	return newFakeKsmtuneds(c)
 }
