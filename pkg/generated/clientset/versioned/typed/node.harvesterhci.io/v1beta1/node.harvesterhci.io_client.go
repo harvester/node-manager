@@ -29,6 +29,7 @@ import (
 type NodeV1beta1Interface interface {
 	RESTClient() rest.Interface
 	CloudInitsGetter
+	HugepagesGetter
 	KsmtunedsGetter
 	NodeConfigsGetter
 }
@@ -40,6 +41,10 @@ type NodeV1beta1Client struct {
 
 func (c *NodeV1beta1Client) CloudInits() CloudInitInterface {
 	return newCloudInits(c)
+}
+
+func (c *NodeV1beta1Client) Hugepages() HugepageInterface {
+	return newHugepages(c)
 }
 
 func (c *NodeV1beta1Client) Ksmtuneds() KsmtunedInterface {

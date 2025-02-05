@@ -32,6 +32,7 @@ func init() {
 
 type Interface interface {
 	CloudInit() CloudInitController
+	Hugepage() HugepageController
 	Ksmtuned() KsmtunedController
 	NodeConfig() NodeConfigController
 }
@@ -48,6 +49,10 @@ type version struct {
 
 func (v *version) CloudInit() CloudInitController {
 	return generic.NewNonNamespacedController[*v1beta1.CloudInit, *v1beta1.CloudInitList](schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "CloudInit"}, "cloudinits", v.controllerFactory)
+}
+
+func (v *version) Hugepage() HugepageController {
+	return generic.NewNonNamespacedController[*v1beta1.Hugepage, *v1beta1.HugepageList](schema.GroupVersionKind{Group: "node.harvesterhci.io", Version: "v1beta1", Kind: "Hugepage"}, "hugepages", v.controllerFactory)
 }
 
 func (v *version) Ksmtuned() KsmtunedController {
