@@ -23,6 +23,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/harvester/node-manager/pkg/controller/cloudinit"
+	"github.com/harvester/node-manager/pkg/controller/hugepage"
 	"github.com/harvester/node-manager/pkg/controller/ksmtuned"
 	"github.com/harvester/node-manager/pkg/controller/nodeconfig"
 	ctlnodeharvester "github.com/harvester/node-manager/pkg/generated/controllers/node.harvesterhci.io"
@@ -161,6 +162,11 @@ func run(opt *option.Option) error {
 	nds := nodes.Core().V1().Node()
 	cloudinits := nodectl.Node().V1beta1().CloudInit()
 	events := nodes.Core().V1().Event()
+
+	hugectl := nodectl.Node().V1beta1().Hugepage()
+	if _, err = hugepage.Register(ctx, opt.NodeName, hugectl); err != nil {
+		logrus.Fatalf("failed to register hugepage controller: %v", err)
+	}
 
 	var ksmtunedController *ksmtuned.Controller
 	run := func(ctx context.Context) {

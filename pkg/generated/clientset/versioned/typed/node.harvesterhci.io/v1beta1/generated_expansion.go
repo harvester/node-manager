@@ -20,6 +20,8 @@ package v1beta1
 
 type CloudInitExpansion interface{}
 
+type HugepageExpansion interface{}
+
 type KsmtunedExpansion interface{}
 
 type NodeConfigExpansion interface{}
