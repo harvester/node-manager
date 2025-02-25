@@ -20,11 +20,9 @@ import (
 )
 
 const (
-	AnnotationNTP = "harvesterhci.io/ntp-service"
-	Disabled      = "disabled"
-	Unsynced      = "unsynced"
-	Synced        = "synced"
-	Unknown       = "unknown"
+	Disabled = "disabled"
+	Unsynced = "unsynced"
+	Synced   = "synced"
 )
 
 // NTPSyncTimeout is 45 minutes because the NTPUpdate should be triggered around 30 minutes
@@ -165,20 +163,26 @@ func generateAnnotationValue(syncStatus, current string) *NTPStatusAnnotation {
 }
 
 func (monitor *NTPMonitor) updateNTPSyncStatus() error {
-	if monitor.NodeNTPAnnotation.NTPSyncStatus != checkNTPSyncStatus() {
+	if monitor.NodeNTPAnnotation.NTPSyncStatus == checkNTPSyncStatus() {
 		return nil
 	}
 	logrus.Infof("Prepare update the NTPSync Status...")
-	monitor.prepareUpdateAnnotation(true)
-	return nil
+	return monitor.prepareUpdateAnnotation(true)
 }
 
 func (monitor *NTPMonitor) handleTimesync1Signal(signal *dbus.Signal) {
 	if signal.Name == "org.freedesktop.DBus.Properties.PropertiesChanged" {
-		logrus.Debugf("Debug Body: %+v", signal.Body)
+		logrus.WithFields(logrus.Fields{
+			"msgLength": len(signal.Body),
+		}).Debugf("Signal body: %+v", signal.Body)
 		// check the signal.Body should at least have 2 elements.
+		// Example:
+		// [org.freedesktop.timesync1.Manager map[NTPMessage:@(uuuuittayttttbtt) [0, 4, 4, 2, -24, 4730, 122, [0x83, 0xbc, 0x3, 0xde], 1740471296747002, 1740471573952418, 1740471573952551, 1740471296760460, false, 1, 0]] ]]
 		if len(signal.Body) < 2 || signal.Body[0].(string) != utils.DbusTimesync1Name {
-			logrus.Debugf("Do not handle this signal: %+v", signal.Body)
+			logrus.WithFields(logrus.Fields{
+				"interface":         signal.Body[0].(string),
+				"expectedInterface": utils.DbusTimesync1Name,
+			}).Debug("Do not handle this signal")
 			return
 		}
 		for k, v := range signal.Body[1].(map[string]dbus.Variant) {
@@ -204,10 +208,17 @@ func (monitor *NTPMonitor) handleTimesync1Signal(signal *dbus.Signal) {
 
 func (monitor *NTPMonitor) handleTimedate1Signal(signal *dbus.Signal) {
 	if signal.Name == "org.freedesktop.DBus.Properties.PropertiesChanged" {
-		logrus.Debugf("Debug Body: %+v", signal.Body)
+		logrus.WithFields(logrus.Fields{
+			"msgLength": len(signal.Body),
+		}).Debugf("Signal body: %+v", signal.Body)
 		// check the signal.Body should at least have 2 elements.
+		// Example:
+		// [org.freedesktop.timedate1 map[NTP:false]]
 		if len(signal.Body) < 2 || signal.Body[0].(string) != utils.DbusTimedate1Name {
-			logrus.Debugf("Do not handle this signal: %+v", signal.Body)
+			logrus.WithFields(logrus.Fields{
+				"interface":         signal.Body[0].(string),
+				"expectedInterface": utils.DbusTimedate1Name,
+			}).Debug("Do not handle this signal")
 			return
 		}
 		for k, v := range signal.Body[1].(map[string]dbus.Variant) {
@@ -217,11 +228,15 @@ func (monitor *NTPMonitor) handleTimedate1Signal(signal *dbus.Signal) {
 				if err := monitor.prepareUpdateAnnotation(ntpEnable); err != nil {
 					logrus.Errorf("Failed to update annotation with err: %v", err)
 				}
+				duration := MAXNTPCheckInterval
 				if ntpEnable {
-					monitor.ticker.Reset(DefaultNTPCheckInterval)
-				} else {
-					monitor.ticker.Reset(MAXNTPCheckInterval)
+					duration = DefaultNTPCheckInterval
 				}
+				logrus.WithFields(logrus.Fields{
+					"ntpEnable": ntpEnable,
+					"duration":  duration.String(),
+				}).Debug("Reset the ticker")
+				monitor.ticker.Reset(duration)
 			default:
 				logrus.Warnf("Do Not handle the un-supported key: %v, val: %v", k, v)
 			}
@@ -271,8 +286,9 @@ func (monitor *NTPMonitor) updateLatestNodeNTPAnnotation() error {
 	}
 	logrus.Debugf("Current annotation value: %+v", ntpValue)
 
-	monitor.NodeNTPAnnotation.CurrentNTPServers = ntpValue.CurrentNTPServers
-	monitor.NodeNTPAnnotation.NTPSyncStatus = ntpValue.NTPSyncStatus
+	monitor.updateAnnotationNTPServers(ntpValue.CurrentNTPServers)
+	monitor.updateAnnotationNTPStatus(ntpValue.NTPSyncStatus)
+
 	return nil
 }
 
@@ -305,13 +321,16 @@ func (monitor *NTPMonitor) updateAnnotation() error {
 		ntpSyncStatus := checkNTPSyncStatus()
 		currentNtpServers := getNTPServersOnNode()
 		monitor.NodeNTPAnnotation = generateAnnotationValue(ntpSyncStatus, currentNtpServers)
-		return monitor.doAnnotationUpdate(monitor.NodeNTPAnnotation)
 	}
 	return monitor.doAnnotationUpdate(monitor.NodeNTPAnnotation)
 }
 
 func (monitor *NTPMonitor) updateAnnotationNTPStatus(status string) {
 	monitor.NodeNTPAnnotation.NTPSyncStatus = status
+}
+
+func (monitor *NTPMonitor) updateAnnotationNTPServers(servers string) {
+	monitor.NodeNTPAnnotation.CurrentNTPServers = servers
 }
 
 func (monitor *NTPMonitor) postponeTheNTPSyncStatusPolling(message NTPMessage) {
@@ -323,6 +342,9 @@ func (monitor *NTPMonitor) postponeTheNTPSyncStatusPolling(message NTPMessage) {
 		logrus.Warnf("NTP Server looks not responsible, let's running the NTPSyncStatus check.")
 		return
 	}
+	logrus.WithFields(logrus.Fields{
+		"duration": DefaultNTPCheckInterval.String(),
+	}).Debug("Reset the ticker")
 	monitor.ticker.Reset(DefaultNTPCheckInterval)
 }
 
