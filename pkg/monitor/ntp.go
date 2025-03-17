@@ -122,7 +122,7 @@ func getNTPServersOnNode() string {
 
 func checkNTPSyncStatus() string {
 	if !checkNTPEnable() {
-		logrus.Debugf("NTP does not enable.")
+		logrus.Debugf("NTP is not enabled.")
 		return Disabled
 	}
 
@@ -248,13 +248,15 @@ func (monitor *NTPMonitor) doAnnotationUpdate(annoValue *NTPStatusAnnotation) er
 	logrus.Debugf("Node: %s, annotation update: %+v", monitor.NodeName, annoValue)
 	node, err := monitor.NodeClient.Get(monitor.NodeName, metav1.GetOptions{})
 	if err != nil {
-		logrus.Warnf("Get Node fail, skip this round NTP check...")
+		logrus.WithFields(logrus.Fields{
+			"node": monitor.NodeName,
+		}).Errorf("Failed to get node, skip this round NTP check: %+v", err)
 		return err
 	}
 
 	bytes, err := json.Marshal(annoValue)
 	if err != nil {
-		logrus.Errorf("Marshal annotation value fail, skip this round NTP check...")
+		logrus.Errorf("Marshal annotation value fail, skip this round NTP check: %+v", err)
 		return err
 	}
 
@@ -270,7 +272,9 @@ func (monitor *NTPMonitor) doAnnotationUpdate(annoValue *NTPStatusAnnotation) er
 func (monitor *NTPMonitor) updateLatestNodeNTPAnnotation() error {
 	node, err := monitor.NodeClient.Get(monitor.NodeName, metav1.GetOptions{})
 	if err != nil {
-		logrus.Errorf("Get node %s failed. err: %v", monitor.NodeName, err)
+		logrus.WithFields(logrus.Fields{
+			"node": monitor.NodeName,
+		}).Errorf("Failed to get node: %+v", err)
 		return err
 	}
 
