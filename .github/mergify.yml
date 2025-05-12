@@ -1,7 +1,7 @@
 pull_request_rules:
 - name: Automatically merge Renovate PRs
   conditions:
-  - check-success="call-dapper-build / dapper-build"
+  - check-success="call-dapper-build / ci"
   - author = renovate[bot]
   actions:
     merge:
@@ -9,7 +9,7 @@ pull_request_rules:
 
 - name: Automatically approve Renovate PRs
   conditions:
-  - check-success="call-dapper-build / dapper-build"
+  - check-success="call-dapper-build / ci"
   - author = renovate[bot]
   actions:
     review:
