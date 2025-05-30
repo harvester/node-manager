@@ -155,11 +155,6 @@ func DisableV2DataEngine() error {
 		return err
 	}
 
-	// ...then try to do the runtime deactivation
-	if err := modprobe(modulesToLoad, false); err != nil {
-		return fmt.Errorf("unable to unload kernel modules %v: %v", modulesToLoad, err)
-	}
-
 	if origHugepages == 0 {
 		// We already don't have any hugepages, and don't want to unnecessarily
 		// restart the kubelet, so no further action required
