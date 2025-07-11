@@ -19,114 +19,32 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	nodeharvesterhciiov1beta1 "github.com/harvester/node-manager/pkg/generated/clientset/versioned/typed/node.harvesterhci.io/v1beta1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeCloudInits implements CloudInitInterface
-type FakeCloudInits struct {
+// fakeCloudInits implements CloudInitInterface
+type fakeCloudInits struct {
+	*gentype.FakeClientWithList[*v1beta1.CloudInit, *v1beta1.CloudInitList]
 	Fake *FakeNodeV1beta1
 }
 
-var cloudinitsResource = v1beta1.SchemeGroupVersion.WithResource("cloudinits")
-
-var cloudinitsKind = v1beta1.SchemeGroupVersion.WithKind("CloudInit")
-
-// Get takes name of the cloudInit, and returns the corresponding cloudInit object, and an error if there is any.
-func (c *FakeCloudInits) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.CloudInit, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(cloudinitsResource, name), &v1beta1.CloudInit{})
-	if obj == nil {
-		return nil, err
+func newFakeCloudInits(fake *FakeNodeV1beta1) nodeharvesterhciiov1beta1.CloudInitInterface {
+	return &fakeCloudInits{
+		gentype.NewFakeClientWithList[*v1beta1.CloudInit, *v1beta1.CloudInitList](
+			fake.Fake,
+			"",
+			v1beta1.SchemeGroupVersion.WithResource("cloudinits"),
+			v1beta1.SchemeGroupVersion.WithKind("CloudInit"),
+			func() *v1beta1.CloudInit { return &v1beta1.CloudInit{} },
+			func() *v1beta1.CloudInitList { return &v1beta1.CloudInitList{} },
+			func(dst, src *v1beta1.CloudInitList) { dst.ListMeta = src.ListMeta },
+			func(list *v1beta1.CloudInitList) []*v1beta1.CloudInit { return gentype.ToPointerSlice(list.Items) },
+			func(list *v1beta1.CloudInitList, items []*v1beta1.CloudInit) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1beta1.CloudInit), err
-}
-
-// List takes label and field selectors, and returns the list of CloudInits that match those selectors.
-func (c *FakeCloudInits) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.CloudInitList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(cloudinitsResource, cloudinitsKind, opts), &v1beta1.CloudInitList{})
-	if obj == nil {
-		return nil, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1beta1.CloudInitList{ListMeta: obj.(*v1beta1.CloudInitList).ListMeta}
-	for _, item := range obj.(*v1beta1.CloudInitList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested cloudInits.
-func (c *FakeCloudInits) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(cloudinitsResource, opts))
-}
-
-// Create takes the representation of a cloudInit and creates it.  Returns the server's representation of the cloudInit, and an error, if there is any.
-func (c *FakeCloudInits) Create(ctx context.Context, cloudInit *v1beta1.CloudInit, opts v1.CreateOptions) (result *v1beta1.CloudInit, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(cloudinitsResource, cloudInit), &v1beta1.CloudInit{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.CloudInit), err
-}
-
-// Update takes the representation of a cloudInit and updates it. Returns the server's representation of the cloudInit, and an error, if there is any.
-func (c *FakeCloudInits) Update(ctx context.Context, cloudInit *v1beta1.CloudInit, opts v1.UpdateOptions) (result *v1beta1.CloudInit, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(cloudinitsResource, cloudInit), &v1beta1.CloudInit{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.CloudInit), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeCloudInits) UpdateStatus(ctx context.Context, cloudInit *v1beta1.CloudInit, opts v1.UpdateOptions) (*v1beta1.CloudInit, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(cloudinitsResource, "status", cloudInit), &v1beta1.CloudInit{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.CloudInit), err
-}
-
-// Delete takes name of the cloudInit and deletes it. Returns an error if one occurs.
-func (c *FakeCloudInits) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(cloudinitsResource, name, opts), &v1beta1.CloudInit{})
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeCloudInits) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(cloudinitsResource, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1beta1.CloudInitList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched cloudInit.
-func (c *FakeCloudInits) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.CloudInit, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(cloudinitsResource, name, pt, data, subresources...), &v1beta1.CloudInit{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.CloudInit), err
 }

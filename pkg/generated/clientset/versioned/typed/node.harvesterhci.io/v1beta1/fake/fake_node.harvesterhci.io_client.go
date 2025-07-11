@@ -29,15 +29,15 @@ type FakeNodeV1beta1 struct {
 }
 
 func (c *FakeNodeV1beta1) CloudInits() v1beta1.CloudInitInterface {
-	return &FakeCloudInits{c}
+	return newFakeCloudInits(c)
 }
 
 func (c *FakeNodeV1beta1) Ksmtuneds() v1beta1.KsmtunedInterface {
-	return &FakeKsmtuneds{c}
+	return newFakeKsmtuneds(c)
 }
 
 func (c *FakeNodeV1beta1) NodeConfigs(namespace string) v1beta1.NodeConfigInterface {
-	return &FakeNodeConfigs{c, namespace}
+	return newFakeNodeConfigs(c, namespace)
 }
 
 // RESTClient returns a RESTClient that is used to communicate
