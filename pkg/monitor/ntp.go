@@ -341,7 +341,7 @@ func (monitor *NTPMonitor) postponeTheNTPSyncStatusPolling(message NTPMessage) {
 	logrus.Debugf("NTPMessage: %+v", message)
 	now := time.Now()
 	// microsecond * 1000 to nanosecond
-	lastTimestamp := time.Unix(0, int64(message.DestinationTimestamp)*1000)
+	lastTimestamp := time.Unix(0, int64(message.DestinationTimestamp)*1000) //nolint:gosec
 	if now.Sub(lastTimestamp) > NTPSyncTimeout {
 		logrus.Warnf("NTP Server looks not responsible, let's running the NTPSyncStatus check.")
 		return
