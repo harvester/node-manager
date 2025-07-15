@@ -19,15 +19,14 @@ limitations under the License.
 package v1beta1
 
 import (
-	"context"
-	"time"
+	context "context"
 
-	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
+	nodeharvesterhciiov1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	scheme "github.com/harvester/node-manager/pkg/generated/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // NodeConfigsGetter has a method to return a NodeConfigInterface.
@@ -38,158 +37,34 @@ type NodeConfigsGetter interface {
 
 // NodeConfigInterface has methods to work with NodeConfig resources.
 type NodeConfigInterface interface {
-	Create(ctx context.Context, nodeConfig *v1beta1.NodeConfig, opts v1.CreateOptions) (*v1beta1.NodeConfig, error)
-	Update(ctx context.Context, nodeConfig *v1beta1.NodeConfig, opts v1.UpdateOptions) (*v1beta1.NodeConfig, error)
-	UpdateStatus(ctx context.Context, nodeConfig *v1beta1.NodeConfig, opts v1.UpdateOptions) (*v1beta1.NodeConfig, error)
+	Create(ctx context.Context, nodeConfig *nodeharvesterhciiov1beta1.NodeConfig, opts v1.CreateOptions) (*nodeharvesterhciiov1beta1.NodeConfig, error)
+	Update(ctx context.Context, nodeConfig *nodeharvesterhciiov1beta1.NodeConfig, opts v1.UpdateOptions) (*nodeharvesterhciiov1beta1.NodeConfig, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+	UpdateStatus(ctx context.Context, nodeConfig *nodeharvesterhciiov1beta1.NodeConfig, opts v1.UpdateOptions) (*nodeharvesterhciiov1beta1.NodeConfig, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.NodeConfig, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.NodeConfigList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*nodeharvesterhciiov1beta1.NodeConfig, error)
+	List(ctx context.Context, opts v1.ListOptions) (*nodeharvesterhciiov1beta1.NodeConfigList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.NodeConfig, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *nodeharvesterhciiov1beta1.NodeConfig, err error)
 	NodeConfigExpansion
 }
 
 // nodeConfigs implements NodeConfigInterface
 type nodeConfigs struct {
-	client rest.Interface
-	ns     string
+	*gentype.ClientWithList[*nodeharvesterhciiov1beta1.NodeConfig, *nodeharvesterhciiov1beta1.NodeConfigList]
 }
 
 // newNodeConfigs returns a NodeConfigs
 func newNodeConfigs(c *NodeV1beta1Client, namespace string) *nodeConfigs {
 	return &nodeConfigs{
-		client: c.RESTClient(),
-		ns:     namespace,
+		gentype.NewClientWithList[*nodeharvesterhciiov1beta1.NodeConfig, *nodeharvesterhciiov1beta1.NodeConfigList](
+			"nodeconfigs",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			namespace,
+			func() *nodeharvesterhciiov1beta1.NodeConfig { return &nodeharvesterhciiov1beta1.NodeConfig{} },
+			func() *nodeharvesterhciiov1beta1.NodeConfigList { return &nodeharvesterhciiov1beta1.NodeConfigList{} },
+		),
 	}
-}
-
-// Get takes name of the nodeConfig, and returns the corresponding nodeConfig object, and an error if there is any.
-func (c *nodeConfigs) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.NodeConfig, err error) {
-	result = &v1beta1.NodeConfig{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of NodeConfigs that match those selectors.
-func (c *nodeConfigs) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.NodeConfigList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1beta1.NodeConfigList{}
-	err = c.client.Get().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested nodeConfigs.
-func (c *nodeConfigs) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a nodeConfig and creates it.  Returns the server's representation of the nodeConfig, and an error, if there is any.
-func (c *nodeConfigs) Create(ctx context.Context, nodeConfig *v1beta1.NodeConfig, opts v1.CreateOptions) (result *v1beta1.NodeConfig, err error) {
-	result = &v1beta1.NodeConfig{}
-	err = c.client.Post().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(nodeConfig).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a nodeConfig and updates it. Returns the server's representation of the nodeConfig, and an error, if there is any.
-func (c *nodeConfigs) Update(ctx context.Context, nodeConfig *v1beta1.NodeConfig, opts v1.UpdateOptions) (result *v1beta1.NodeConfig, err error) {
-	result = &v1beta1.NodeConfig{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		Name(nodeConfig.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(nodeConfig).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *nodeConfigs) UpdateStatus(ctx context.Context, nodeConfig *v1beta1.NodeConfig, opts v1.UpdateOptions) (result *v1beta1.NodeConfig, err error) {
-	result = &v1beta1.NodeConfig{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		Name(nodeConfig.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(nodeConfig).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the nodeConfig and deletes it. Returns an error if one occurs.
-func (c *nodeConfigs) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *nodeConfigs) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched nodeConfig.
-func (c *nodeConfigs) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.NodeConfig, err error) {
-	result = &v1beta1.NodeConfig{}
-	err = c.client.Patch(pt).
-		Namespace(c.ns).
-		Resource("nodeconfigs").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }
