@@ -112,6 +112,23 @@ func (h *HugepageManager) GetSpecChan() chan<- *nodev1beta1.HugepageSpec {
 	return h.specCh
 }
 
+// GetDefaultTHPConfig returns the system's current THP config, or if that
+// fails, it returns sensible default values. This is to be used when first
+// creating a Hugepage CR for a node so that the initial spec reflects the
+// current state of the system.
+func (h *HugepageManager) GetDefaultTHPConfig() *nodev1beta1.THPConfig {
+	config, err := h.readTHPConfig()
+	if err != nil {
+		logrus.Warnf("failed to read current THP config: %v, falling back to default settings", err)
+		return &nodev1beta1.THPConfig{
+			Enabled:      nodev1beta1.THPEnabledAlways,
+			ShmemEnabled: nodev1beta1.THPShmemEnabledNever,
+			Defrag:       nodev1beta1.THPDefragMadvise,
+		}
+	}
+	return config
+}
+
 func (h *HugepageManager) readProcMeminfo() (*procfs.Meminfo, error) {
 	meminfo, err := h.procFs.Meminfo()
 	if err != nil {

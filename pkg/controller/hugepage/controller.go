@@ -4,6 +4,7 @@ import (
 	"context"
 	"reflect"
 
+	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
 
 	"github.com/harvester/node-manager/pkg/hugepage"
@@ -13,7 +14,8 @@ import (
 )
 
 const (
-	HugepageHandlerName = "harvester-hugepage-handler"
+	HugepageHandlerName     = "harvester-hugepage-handler"
+	HugepageNodeHandlerName = "harvester-hugepage-node-handler"
 )
 
 type Controller struct {
@@ -24,10 +26,13 @@ type Controller struct {
 	HugepageCache  ctlhugepage.HugepageCache
 	HugepageClient ctlhugepage.HugepageController
 
+	NodeCache ctlnode.NodeCache
+	Nodes     ctlnode.NodeController
+
 	HugepageManager *hugepage.HugepageManager
 }
 
-func Register(ctx context.Context, name string, hugepagectl ctlhugepage.HugepageController) (*Controller, error) {
+func Register(ctx context.Context, name string, hugepagectl ctlhugepage.HugepageController, nodes ctlnode.NodeController) (*Controller, error) {
 	man := hugepage.NewHugepageManager(ctx)
 
 	c := &Controller{
@@ -35,10 +40,14 @@ func Register(ctx context.Context, name string, hugepagectl ctlhugepage.Hugepage
 		Name:            name,
 		HugepageCache:   hugepagectl.Cache(),
 		HugepageClient:  hugepagectl,
+		NodeCache:       nodes.Cache(),
+		Nodes:           nodes,
 		HugepageManager: man,
 	}
 
 	c.HugepageClient.OnChange(ctx, HugepageHandlerName, c.OnChange)
+
+	c.Nodes.OnChange(ctx, HugepageNodeHandlerName, c.NodeOnChange)
 
 	go c.Watch(ctx, name)
 
