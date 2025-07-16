@@ -164,7 +164,7 @@ func run(opt *option.Option) error {
 	events := nodes.Core().V1().Event()
 
 	hugectl := nodectl.Node().V1beta1().Hugepage()
-	if _, err = hugepage.Register(ctx, opt.NodeName, hugectl); err != nil {
+	if _, err = hugepage.Register(ctx, opt.NodeName, hugectl, nds); err != nil {
 		logrus.Fatalf("failed to register hugepage controller: %v", err)
 	}
 
