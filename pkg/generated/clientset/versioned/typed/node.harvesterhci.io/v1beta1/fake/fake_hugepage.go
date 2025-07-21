@@ -19,114 +19,32 @@ limitations under the License.
 package fake
 
 import (
-	"context"
-
 	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	types "k8s.io/apimachinery/pkg/types"
-	watch "k8s.io/apimachinery/pkg/watch"
-	testing "k8s.io/client-go/testing"
+	nodeharvesterhciiov1beta1 "github.com/harvester/node-manager/pkg/generated/clientset/versioned/typed/node.harvesterhci.io/v1beta1"
+	gentype "k8s.io/client-go/gentype"
 )
 
-// FakeHugepages implements HugepageInterface
-type FakeHugepages struct {
+// fakeHugepages implements HugepageInterface
+type fakeHugepages struct {
+	*gentype.FakeClientWithList[*v1beta1.Hugepage, *v1beta1.HugepageList]
 	Fake *FakeNodeV1beta1
 }
 
-var hugepagesResource = v1beta1.SchemeGroupVersion.WithResource("hugepages")
-
-var hugepagesKind = v1beta1.SchemeGroupVersion.WithKind("Hugepage")
-
-// Get takes name of the hugepage, and returns the corresponding hugepage object, and an error if there is any.
-func (c *FakeHugepages) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Hugepage, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootGetAction(hugepagesResource, name), &v1beta1.Hugepage{})
-	if obj == nil {
-		return nil, err
+func newFakeHugepages(fake *FakeNodeV1beta1) nodeharvesterhciiov1beta1.HugepageInterface {
+	return &fakeHugepages{
+		gentype.NewFakeClientWithList[*v1beta1.Hugepage, *v1beta1.HugepageList](
+			fake.Fake,
+			"",
+			v1beta1.SchemeGroupVersion.WithResource("hugepages"),
+			v1beta1.SchemeGroupVersion.WithKind("Hugepage"),
+			func() *v1beta1.Hugepage { return &v1beta1.Hugepage{} },
+			func() *v1beta1.HugepageList { return &v1beta1.HugepageList{} },
+			func(dst, src *v1beta1.HugepageList) { dst.ListMeta = src.ListMeta },
+			func(list *v1beta1.HugepageList) []*v1beta1.Hugepage { return gentype.ToPointerSlice(list.Items) },
+			func(list *v1beta1.HugepageList, items []*v1beta1.Hugepage) {
+				list.Items = gentype.FromPointerSlice(items)
+			},
+		),
+		fake,
 	}
-	return obj.(*v1beta1.Hugepage), err
-}
-
-// List takes label and field selectors, and returns the list of Hugepages that match those selectors.
-func (c *FakeHugepages) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.HugepageList, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootListAction(hugepagesResource, hugepagesKind, opts), &v1beta1.HugepageList{})
-	if obj == nil {
-		return nil, err
-	}
-
-	label, _, _ := testing.ExtractFromListOptions(opts)
-	if label == nil {
-		label = labels.Everything()
-	}
-	list := &v1beta1.HugepageList{ListMeta: obj.(*v1beta1.HugepageList).ListMeta}
-	for _, item := range obj.(*v1beta1.HugepageList).Items {
-		if label.Matches(labels.Set(item.Labels)) {
-			list.Items = append(list.Items, item)
-		}
-	}
-	return list, err
-}
-
-// Watch returns a watch.Interface that watches the requested hugepages.
-func (c *FakeHugepages) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	return c.Fake.
-		InvokesWatch(testing.NewRootWatchAction(hugepagesResource, opts))
-}
-
-// Create takes the representation of a hugepage and creates it.  Returns the server's representation of the hugepage, and an error, if there is any.
-func (c *FakeHugepages) Create(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.CreateOptions) (result *v1beta1.Hugepage, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootCreateAction(hugepagesResource, hugepage), &v1beta1.Hugepage{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.Hugepage), err
-}
-
-// Update takes the representation of a hugepage and updates it. Returns the server's representation of the hugepage, and an error, if there is any.
-func (c *FakeHugepages) Update(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.UpdateOptions) (result *v1beta1.Hugepage, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateAction(hugepagesResource, hugepage), &v1beta1.Hugepage{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.Hugepage), err
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *FakeHugepages) UpdateStatus(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.UpdateOptions) (*v1beta1.Hugepage, error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootUpdateSubresourceAction(hugepagesResource, "status", hugepage), &v1beta1.Hugepage{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.Hugepage), err
-}
-
-// Delete takes name of the hugepage and deletes it. Returns an error if one occurs.
-func (c *FakeHugepages) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	_, err := c.Fake.
-		Invokes(testing.NewRootDeleteActionWithOptions(hugepagesResource, name, opts), &v1beta1.Hugepage{})
-	return err
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *FakeHugepages) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	action := testing.NewRootDeleteCollectionAction(hugepagesResource, listOpts)
-
-	_, err := c.Fake.Invokes(action, &v1beta1.HugepageList{})
-	return err
-}
-
-// Patch applies the patch and returns the patched hugepage.
-func (c *FakeHugepages) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Hugepage, err error) {
-	obj, err := c.Fake.
-		Invokes(testing.NewRootPatchSubresourceAction(hugepagesResource, name, pt, data, subresources...), &v1beta1.Hugepage{})
-	if obj == nil {
-		return nil, err
-	}
-	return obj.(*v1beta1.Hugepage), err
 }
