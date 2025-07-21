@@ -12,6 +12,8 @@ import (
  * The actual size of Hugepages differs between processor architectures and
  * also depends on what the processor implementation supports. On modern x86_64
  * processors it is common to see 2MiB and 1GiB supported.
+ *
+ * We are currently (2025-07-21) only exposing Transparent Hugepages here.
  */
 
 // +genclient
@@ -32,20 +34,12 @@ type HugepageSpec struct {
 	// +optional
 	// +kubebuilder:validation:Optional
 	Transparent THPConfig `json:"transparent,omitempty"`
-
-	// +optional
-	// +kubebuilder:validation:Optional
-	HugeTLBFS []HugeTLBFSConfig `json:"hugetlbfs,omitempty"`
 }
 
 type HugepageStatus struct {
 	// +optional
 	// +kubebuilder:validation:Optional
 	Transparent THPConfig `json:"transparent,omitempty"`
-
-	// +optional
-	// +kubebuilder:validation:Optional
-	HugeTLBFS []HugeTLBFSStatus `json:"hugetlbfs,omitempty"`
 
 	// +optional
 	// +kubebuilder:validation:Optional
@@ -127,35 +121,3 @@ const (
 	THPDefragMadvise         THPDefrag = "madvise"
 	THPDefragNever           THPDefrag = "never"
 )
-
-type HugeTLBFSConfig struct {
-	// +optional
-	Mountpoint string `json:"mountpoint,omitempty"`
-
-	// +optional
-	Pagesize uint64 `json:"pagesize,omitempty"`
-
-	// Number of persistent hugepages
-	// +optional
-	NrHugepages uint64 `json:"nrHugepages,omitempty"`
-
-	// +optional
-	NrOvercommitHugepages uint64 `json:"nrOvercommitHugepages,omitempty"`
-}
-
-type HugeTLBFSStatus struct {
-	// +optional
-	Mountpoint string `json:"mountpoint"`
-
-	// +optional
-	Pagesize uint64 `json:"pagesize"`
-
-	// +optional
-	Free uint64 `json:"free"`
-
-	// +optional
-	Reserved uint64 `json:"reserved"`
-
-	// +optional
-	Surplus uint64 `json:"surplus"`
-}
