@@ -39,23 +39,6 @@ spec:
             type: object
           spec:
             properties:
-              hugetlbfs:
-                items:
-                  properties:
-                    mountpoint:
-                      type: string
-                    nrHugepages:
-                      description: Number of persistent hugepages
-                      format: int64
-                      type: integer
-                    nrOvercommitHugepages:
-                      format: int64
-                      type: integer
-                    pagesize:
-                      format: int64
-                      type: integer
-                  type: object
-                type: array
               transparent:
                 properties:
                   defrag:
@@ -88,25 +71,6 @@ spec:
             type: object
           status:
             properties:
-              hugetlbfs:
-                items:
-                  properties:
-                    free:
-                      format: int64
-                      type: integer
-                    mountpoint:
-                      type: string
-                    pagesize:
-                      format: int64
-                      type: integer
-                    reserved:
-                      format: int64
-                      type: integer
-                    surplus:
-                      format: int64
-                      type: integer
-                  type: object
-                type: array
               meminfo:
                 properties:
                   anonHugePages:
