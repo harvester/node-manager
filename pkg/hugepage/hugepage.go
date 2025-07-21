@@ -57,9 +57,6 @@ func (h *Manager) run() {
 			if err := h.writeTHPConfig(&s.Transparent); err != nil {
 				logrus.Errorf("failed to update transparent hugepage config: %v", err)
 			}
-			if err := h.writeHugeTLBFSConfig(s.HugeTLBFS); err != nil {
-				logrus.Errorf("failed to update hugetlbfs config: %v", err)
-			}
 		case <-t:
 			logrus.Debug("updating hugepage status")
 		case <-h.ctx.Done():
@@ -83,14 +80,8 @@ func (h *Manager) updateStatus() error {
 		return err
 	}
 
-	hugetlbfsConfig, err := h.readHugeTLBFSConfig()
-	if err != nil {
-		return err
-	}
-
 	h.statCh <- &nodev1beta1.HugepageStatus{
 		Transparent: *thpConfig,
-		HugeTLBFS:   hugetlbfsConfig,
 		Meminfo: nodev1beta1.Meminfo{
 			AnonHugePages:  *meminfo.AnonHugePagesBytes,
 			ShmemHugePages: *meminfo.ShmemHugePagesBytes,
@@ -174,42 +165,6 @@ func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 	}, nil
 }
 
-func (h *Manager) readHugeTLBFSConfig() ([]nodev1beta1.HugeTLBFSStatus, error) {
-	status := make([]nodev1beta1.HugeTLBFSStatus, 0)
-
-	procMount, err := h.read("/proc/mounts")
-	if err != nil {
-		logrus.Errorf("failed to read /proc/mounts: %v", err)
-		return []nodev1beta1.HugeTLBFSStatus{}, err
-	}
-
-	for _, mp := range strings.Split(procMount, "\n") {
-		props := strings.Split(mp, " ")
-		if len(props) > 1 && props[0] == "hugetlbfs" {
-			size, err := getHugepageSizeFromMountparams(props[3])
-			if err != nil {
-				logrus.Errorf("failed to read /proc/mounts: %v", err)
-				continue
-			}
-			sizeKi := size / 1024
-
-			free, err := h.readSysfsUint64(fmt.Sprintf("/sys/kernel/mm/hugepages/hugepages-%vkB/free_hugepages", sizeKi))
-			if err != nil {
-				logrus.Errorf("failed to read from sysfs: %v", err)
-				continue
-			}
-
-			status = append(status, nodev1beta1.HugeTLBFSStatus{
-				Mountpoint: props[1],
-				Pagesize:   size,
-				Free:       free,
-			})
-		}
-	}
-
-	return status, nil
-}
-
 func (h *Manager) readSysfsUint64(path string) (uint64, error) {
 	rawStr, err := h.read(path)
 	if err != nil {
@@ -223,38 +178,6 @@ func (h *Manager) readSysfsUint64(path string) (uint64, error) {
 	return num, nil
 }
 
-func getHugepageSizeFromMountparams(props string) (uint64, error) {
-	params := strings.Split(props, ",")
-	for _, p := range params {
-		if strings.Contains(p, "pagesize") {
-			tmp := strings.Split(p, "=")
-			if len(tmp) != 2 {
-				return 0, fmt.Errorf("failed to find pagesize parameter")
-			}
-			unit := strings.Trim(tmp[1], "0123456789")
-			size, err := strconv.Atoi(strings.Trim(tmp[1], unit))
-			if err != nil {
-				return 0, fmt.Errorf("failed to find pagesize parameter")
-			}
-
-			switch unit {
-			case "k":
-			case "K":
-				return uint64(size * 1024), nil
-			case "m":
-			case "M":
-				return uint64(size * 1024 * 1024), nil
-			case "g":
-			case "G":
-				return uint64(size * 1024 * 1024 * 1024), nil
-			default:
-				return 0, fmt.Errorf("failed to find pagesize parameter")
-			}
-		}
-	}
-	return 0, fmt.Errorf("failed to find pagesize parameter")
-}
-
 func (h *Manager) writeTHPConfig(thp *nodev1beta1.THPConfig) error {
 	if err := h.write(THPEnabledPath, string(thp.Enabled)); err != nil {
 		return err
@@ -265,10 +188,6 @@ func (h *Manager) writeTHPConfig(thp *nodev1beta1.THPConfig) error {
 	if err := h.write(THPDefragPath, string(thp.Defrag)); err != nil {
 		return err
 	}
-	return nil
-}
-
-func (h *Manager) writeHugeTLBFSConfig(huge []nodev1beta1.HugeTLBFSConfig) error {
 	return nil
 }
 
