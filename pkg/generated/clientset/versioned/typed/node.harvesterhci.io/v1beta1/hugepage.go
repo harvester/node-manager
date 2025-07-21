@@ -19,15 +19,14 @@ limitations under the License.
 package v1beta1
 
 import (
-	"context"
-	"time"
+	context "context"
 
-	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
+	nodeharvesterhciiov1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	scheme "github.com/harvester/node-manager/pkg/generated/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
-	rest "k8s.io/client-go/rest"
+	gentype "k8s.io/client-go/gentype"
 )
 
 // HugepagesGetter has a method to return a HugepageInterface.
@@ -38,147 +37,34 @@ type HugepagesGetter interface {
 
 // HugepageInterface has methods to work with Hugepage resources.
 type HugepageInterface interface {
-	Create(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.CreateOptions) (*v1beta1.Hugepage, error)
-	Update(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.UpdateOptions) (*v1beta1.Hugepage, error)
-	UpdateStatus(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.UpdateOptions) (*v1beta1.Hugepage, error)
+	Create(ctx context.Context, hugepage *nodeharvesterhciiov1beta1.Hugepage, opts v1.CreateOptions) (*nodeharvesterhciiov1beta1.Hugepage, error)
+	Update(ctx context.Context, hugepage *nodeharvesterhciiov1beta1.Hugepage, opts v1.UpdateOptions) (*nodeharvesterhciiov1beta1.Hugepage, error)
+	// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+	UpdateStatus(ctx context.Context, hugepage *nodeharvesterhciiov1beta1.Hugepage, opts v1.UpdateOptions) (*nodeharvesterhciiov1beta1.Hugepage, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
-	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.Hugepage, error)
-	List(ctx context.Context, opts v1.ListOptions) (*v1beta1.HugepageList, error)
+	Get(ctx context.Context, name string, opts v1.GetOptions) (*nodeharvesterhciiov1beta1.Hugepage, error)
+	List(ctx context.Context, opts v1.ListOptions) (*nodeharvesterhciiov1beta1.HugepageList, error)
 	Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error)
-	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Hugepage, err error)
+	Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *nodeharvesterhciiov1beta1.Hugepage, err error)
 	HugepageExpansion
 }
 
 // hugepages implements HugepageInterface
 type hugepages struct {
-	client rest.Interface
+	*gentype.ClientWithList[*nodeharvesterhciiov1beta1.Hugepage, *nodeharvesterhciiov1beta1.HugepageList]
 }
 
 // newHugepages returns a Hugepages
 func newHugepages(c *NodeV1beta1Client) *hugepages {
 	return &hugepages{
-		client: c.RESTClient(),
+		gentype.NewClientWithList[*nodeharvesterhciiov1beta1.Hugepage, *nodeharvesterhciiov1beta1.HugepageList](
+			"hugepages",
+			c.RESTClient(),
+			scheme.ParameterCodec,
+			"",
+			func() *nodeharvesterhciiov1beta1.Hugepage { return &nodeharvesterhciiov1beta1.Hugepage{} },
+			func() *nodeharvesterhciiov1beta1.HugepageList { return &nodeharvesterhciiov1beta1.HugepageList{} },
+		),
 	}
-}
-
-// Get takes name of the hugepage, and returns the corresponding hugepage object, and an error if there is any.
-func (c *hugepages) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.Hugepage, err error) {
-	result = &v1beta1.Hugepage{}
-	err = c.client.Get().
-		Resource("hugepages").
-		Name(name).
-		VersionedParams(&options, scheme.ParameterCodec).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// List takes label and field selectors, and returns the list of Hugepages that match those selectors.
-func (c *hugepages) List(ctx context.Context, opts v1.ListOptions) (result *v1beta1.HugepageList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	result = &v1beta1.HugepageList{}
-	err = c.client.Get().
-		Resource("hugepages").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Watch returns a watch.Interface that watches the requested hugepages.
-func (c *hugepages) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
-	}
-	opts.Watch = true
-	return c.client.Get().
-		Resource("hugepages").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Watch(ctx)
-}
-
-// Create takes the representation of a hugepage and creates it.  Returns the server's representation of the hugepage, and an error, if there is any.
-func (c *hugepages) Create(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.CreateOptions) (result *v1beta1.Hugepage, err error) {
-	result = &v1beta1.Hugepage{}
-	err = c.client.Post().
-		Resource("hugepages").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(hugepage).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Update takes the representation of a hugepage and updates it. Returns the server's representation of the hugepage, and an error, if there is any.
-func (c *hugepages) Update(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.UpdateOptions) (result *v1beta1.Hugepage, err error) {
-	result = &v1beta1.Hugepage{}
-	err = c.client.Put().
-		Resource("hugepages").
-		Name(hugepage.Name).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(hugepage).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-func (c *hugepages) UpdateStatus(ctx context.Context, hugepage *v1beta1.Hugepage, opts v1.UpdateOptions) (result *v1beta1.Hugepage, err error) {
-	result = &v1beta1.Hugepage{}
-	err = c.client.Put().
-		Resource("hugepages").
-		Name(hugepage.Name).
-		SubResource("status").
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(hugepage).
-		Do(ctx).
-		Into(result)
-	return
-}
-
-// Delete takes name of the hugepage and deletes it. Returns an error if one occurs.
-func (c *hugepages) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
-	return c.client.Delete().
-		Resource("hugepages").
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// DeleteCollection deletes a collection of objects.
-func (c *hugepages) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
-	}
-	return c.client.Delete().
-		Resource("hugepages").
-		VersionedParams(&listOpts, scheme.ParameterCodec).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-// Patch applies the patch and returns the patched hugepage.
-func (c *hugepages) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1beta1.Hugepage, err error) {
-	result = &v1beta1.Hugepage{}
-	err = c.client.Patch(pt).
-		Resource("hugepages").
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, scheme.ParameterCodec).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	return
 }
