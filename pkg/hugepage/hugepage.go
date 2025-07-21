@@ -23,10 +23,10 @@ const (
 )
 
 var (
-	manager *HugepageManager
+	manager *Manager
 )
 
-type HugepageManager struct {
+type Manager struct {
 	ctx context.Context
 
 	statCh chan *nodev1beta1.HugepageStatus
@@ -35,10 +35,10 @@ type HugepageManager struct {
 	procFs procfs.FS
 }
 
-func NewHugepageManager(ctx context.Context) *HugepageManager {
+func NewHugepageManager(ctx context.Context) *Manager {
 	procFs, _ := procfs.NewFS("/proc")
 
-	manager = &HugepageManager{
+	manager = &Manager{
 		ctx:    ctx,
 		statCh: make(chan *nodev1beta1.HugepageStatus, 10),
 		specCh: make(chan *nodev1beta1.HugepageSpec, 1),
@@ -48,7 +48,7 @@ func NewHugepageManager(ctx context.Context) *HugepageManager {
 	return manager
 }
 
-func (h *HugepageManager) run() {
+func (h *Manager) run() {
 	t := ticker.Context(h.ctx, MonitorInterval)
 	for {
 		select {
@@ -72,7 +72,7 @@ func (h *HugepageManager) run() {
 	}
 }
 
-func (h *HugepageManager) updateStatus() error {
+func (h *Manager) updateStatus() error {
 	meminfo, err := h.readProcMeminfo()
 	if err != nil {
 		return err
@@ -104,11 +104,11 @@ func (h *HugepageManager) updateStatus() error {
 	return nil
 }
 
-func (h *HugepageManager) GetStatusChan() <-chan *nodev1beta1.HugepageStatus {
+func (h *Manager) GetStatusChan() <-chan *nodev1beta1.HugepageStatus {
 	return h.statCh
 }
 
-func (h *HugepageManager) GetSpecChan() chan<- *nodev1beta1.HugepageSpec {
+func (h *Manager) GetSpecChan() chan<- *nodev1beta1.HugepageSpec {
 	return h.specCh
 }
 
@@ -116,7 +116,7 @@ func (h *HugepageManager) GetSpecChan() chan<- *nodev1beta1.HugepageSpec {
 // fails, it returns sensible default values. This is to be used when first
 // creating a Hugepage CR for a node so that the initial spec reflects the
 // current state of the system.
-func (h *HugepageManager) GetDefaultTHPConfig() *nodev1beta1.THPConfig {
+func (h *Manager) GetDefaultTHPConfig() *nodev1beta1.THPConfig {
 	config, err := h.readTHPConfig()
 	if err != nil {
 		logrus.Warnf("failed to read current THP config: %v, falling back to default settings", err)
@@ -129,7 +129,7 @@ func (h *HugepageManager) GetDefaultTHPConfig() *nodev1beta1.THPConfig {
 	return config
 }
 
-func (h *HugepageManager) readProcMeminfo() (*procfs.Meminfo, error) {
+func (h *Manager) readProcMeminfo() (*procfs.Meminfo, error) {
 	meminfo, err := h.procFs.Meminfo()
 	if err != nil {
 		logrus.Errorf("failed to read procfs: %v", err)
@@ -139,7 +139,7 @@ func (h *HugepageManager) readProcMeminfo() (*procfs.Meminfo, error) {
 	return &meminfo, nil
 }
 
-func (h *HugepageManager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
+func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 	enabledLine, err := h.read(THPEnabledPath)
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (h *HugepageManager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 	}, nil
 }
 
-func (h *HugepageManager) readHugeTLBFSConfig() ([]nodev1beta1.HugeTLBFSStatus, error) {
+func (h *Manager) readHugeTLBFSConfig() ([]nodev1beta1.HugeTLBFSStatus, error) {
 	status := make([]nodev1beta1.HugeTLBFSStatus, 0)
 
 	procMount, err := h.read("/proc/mounts")
@@ -210,7 +210,7 @@ func (h *HugepageManager) readHugeTLBFSConfig() ([]nodev1beta1.HugeTLBFSStatus, 
 	return status, nil
 }
 
-func (h *HugepageManager) readSysfsUint64(path string) (uint64, error) {
+func (h *Manager) readSysfsUint64(path string) (uint64, error) {
 	rawStr, err := h.read(path)
 	if err != nil {
 		return 0, fmt.Errorf("failed to read path %v: %v", path, err)
@@ -255,7 +255,7 @@ func getHugepageSizeFromMountparams(props string) (uint64, error) {
 	return 0, fmt.Errorf("failed to find pagesize parameter")
 }
 
-func (h *HugepageManager) writeTHPConfig(thp *nodev1beta1.THPConfig) error {
+func (h *Manager) writeTHPConfig(thp *nodev1beta1.THPConfig) error {
 	if err := h.write(THPEnabledPath, string(thp.Enabled)); err != nil {
 		return err
 	}
@@ -268,11 +268,11 @@ func (h *HugepageManager) writeTHPConfig(thp *nodev1beta1.THPConfig) error {
 	return nil
 }
 
-func (h *HugepageManager) writeHugeTLBFSConfig(huge []nodev1beta1.HugeTLBFSConfig) error {
+func (h *Manager) writeHugeTLBFSConfig(huge []nodev1beta1.HugeTLBFSConfig) error {
 	return nil
 }
 
-func (h *HugepageManager) read(path string) (string, error) {
+func (h *Manager) read(path string) (string, error) {
 	buf, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
@@ -280,7 +280,7 @@ func (h *HugepageManager) read(path string) (string, error) {
 	return string(buf), nil
 }
 
-func (h *HugepageManager) write(path, value string) error {
+func (h *Manager) write(path, value string) error {
 	f, err := os.OpenFile(path, os.O_RDWR, 0644)
 	if err != nil {
 		return err

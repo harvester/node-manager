@@ -29,7 +29,7 @@ type Controller struct {
 	NodeCache ctlnode.NodeCache
 	Nodes     ctlnode.NodeController
 
-	HugepageManager *hugepage.HugepageManager
+	HugepageManager *hugepage.Manager
 }
 
 func Register(ctx context.Context, name string, hugepagectl ctlhugepage.HugepageController, nodes ctlnode.NodeController) (*Controller, error) {
