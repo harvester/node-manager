@@ -26,7 +26,6 @@ type NTPSuite struct {
 	sshClient      *goph.Client
 	clientSet      *clientset.Clientset
 	targetNodeName string
-	targetDiskName string
 }
 
 const defaultNTPServers = "0.opensuse.pool.ntp.org 1.opensuse.pool.ntp.org 2.opensuse.pool.ntp.org 3.opensuse.pool.ntp.org"
@@ -113,7 +112,7 @@ func (s *NTPSuite) BeforeTest(_, _ string) {
 func (s *NTPSuite) AfterTest(_, _ string) {
 	defer func() {
 		if s.sshClient != nil {
-			s.sshClient.Close()
+			s.sshClient.Close() //nolint:errcheck
 		}
 	}()
 

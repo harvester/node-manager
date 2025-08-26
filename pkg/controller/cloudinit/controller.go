@@ -238,7 +238,7 @@ func newPresentCondition(cloudInit *cloudinitv1.CloudInit) metav1.Condition {
 	f, err := os.Open(filepath.Join(cloudinit.Directory, cloudInit.Spec.Filename))
 	switch {
 	case err == nil:
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 		status = metav1.ConditionTrue
 		reason = CloudInitReasonPresent
 		message = fmt.Sprintf("%s is present under /oem", cloudInit.Spec.Filename)
@@ -403,7 +403,7 @@ func newOutOfSyncCondition(cloudInit *cloudinitv1.CloudInit) metav1.Condition {
 			Message: fmt.Sprintf("Open file: %v", err),
 		}
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	checksum, err := cloudinit.Measure(f)
 	if err != nil {

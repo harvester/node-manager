@@ -173,7 +173,9 @@ func (handler *NTPHandler) UpdateNodeNTPAnnotation() error {
 	nodeCpy := node.DeepCopy()
 	nodeCpy.Annotations[utils.AnnotationNTP] = string(bytes)
 	if !reflect.DeepEqual(node, nodeCpy) {
-		handler.NodeClient.Update(nodeCpy)
+		if _, err := handler.NodeClient.Update(nodeCpy); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -198,13 +200,13 @@ func NTPConfigRollback() error {
 	if err != nil {
 		return fmt.Errorf("open NTP config origin file failed. err: %v", err)
 	}
-	defer src.Close()
+	defer src.Close() //nolint:errcheck
 
 	dst, err := os.OpenFile(timesyncdConfigPath, os.O_RDWR, 0644)
 	if err != nil {
 		return fmt.Errorf("open NTP config file failed. err: %v", err)
 	}
-	defer dst.Close()
+	defer dst.Close() //nolint:errcheck
 
 	_, err = io.Copy(dst, src)
 	return err

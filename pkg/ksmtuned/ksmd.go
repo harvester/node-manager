@@ -3,7 +3,7 @@ package ksmtuned
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strconv"
 	"time"
 
@@ -209,7 +209,7 @@ func (k *ksmd) getMergeAcrossNodes() (uint64, error) {
 }
 
 func saveKsmPath(p ksmPath, b []byte) error {
-	return ioutil.WriteFile(string(p), b, 0644)
+	return os.WriteFile(string(p), b, 0644)
 }
 
 func saveKsmPathByUint(p ksmPath, v uint) error {
@@ -225,7 +225,7 @@ func saveRun(v ksmdRun) error {
 }
 
 func readKsmPath(p ksmPath) (uint64, error) {
-	b, err := ioutil.ReadFile(string(p))
+	b, err := os.ReadFile(string(p))
 	if err != nil {
 		return 0, err
 	}
