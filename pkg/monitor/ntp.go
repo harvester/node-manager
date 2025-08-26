@@ -264,7 +264,9 @@ func (monitor *NTPMonitor) doAnnotationUpdate(annoValue *NTPStatusAnnotation) er
 	nodeCpy.Annotations[utils.AnnotationNTP] = string(bytes)
 	if !reflect.DeepEqual(node, nodeCpy) {
 		logrus.Infof("Try to update with Node: %s, annotation update: %+v", monitor.NodeName, annoValue)
-		monitor.NodeClient.Update(nodeCpy)
+		if _, err := monitor.NodeClient.Update(nodeCpy); err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"reflect"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
@@ -43,7 +42,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	existing := []v1beta1.CloudInit{
-		{ObjectMeta: metav1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
+		{ObjectMeta: v1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
 	}
 
 	tests := []struct {
@@ -64,7 +63,7 @@ func TestCreate(t *testing.T) {
 			ctl := &CloudInit{cloudinits: &mockClient{list: existing}}
 
 			cloudinit := &v1beta1.CloudInit{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-cloudinit"},
+				ObjectMeta: v1.ObjectMeta{Name: "test-cloudinit"},
 				Spec:       tt.input,
 			}
 
@@ -84,7 +83,7 @@ func TestUpdate(t *testing.T) {
 	}
 
 	existing := []v1beta1.CloudInit{
-		{ObjectMeta: metav1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
+		{ObjectMeta: v1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
 	}
 
 	tests := []struct {
@@ -105,12 +104,12 @@ func TestUpdate(t *testing.T) {
 			ctl := &CloudInit{cloudinits: &mockClient{list: existing}}
 
 			cloudinit := &v1beta1.CloudInit{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-cloudinit"},
+				ObjectMeta: v1.ObjectMeta{Name: "test-cloudinit"},
 				Spec:       tt.input,
 			}
 
 			old := &v1beta1.CloudInit{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-cloudinit"},
+				ObjectMeta: v1.ObjectMeta{Name: "test-cloudinit"},
 				Spec:       v1beta1.CloudInitSpec{Filename: "specifically-not-in-use.yaml"},
 			}
 

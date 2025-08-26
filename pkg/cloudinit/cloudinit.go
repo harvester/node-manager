@@ -29,7 +29,7 @@ func RequireLocal(cloudinit *cloudinitv1.CloudInit) (bool, error) {
 	if err != nil {
 		r = strings.NewReader("")
 	} else {
-		defer f.Close()
+		defer f.Close() //nolint:errcheck
 	}
 
 	diskChecksum, err := Measure(r)
@@ -45,8 +45,8 @@ func RequireLocal(cloudinit *cloudinitv1.CloudInit) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer os.RemoveAll(tempFile.Name())
-	defer tempFile.Close()
+	defer os.RemoveAll(tempFile.Name()) //nolint:errcheck
+	defer tempFile.Close()              //nolint:errcheck
 
 	_, err = io.Copy(tempFile, strings.NewReader(cloudinit.Spec.Contents))
 	if err != nil {
