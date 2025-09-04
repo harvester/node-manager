@@ -26,6 +26,23 @@ import (
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// HugepageList is a list of Hugepage resources
+type HugepageList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata"`
+
+	Items []Hugepage `json:"items"`
+}
+
+func NewHugepage(namespace, name string, obj Hugepage) *Hugepage {
+	obj.APIVersion, obj.Kind = SchemeGroupVersion.WithKind("Hugepage").ToAPIVersionAndKind()
+	obj.Name = name
+	obj.Namespace = namespace
+	return &obj
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // KsmtunedList is a list of Ksmtuned resources
 type KsmtunedList struct {
 	metav1.TypeMeta `json:",inline"`
