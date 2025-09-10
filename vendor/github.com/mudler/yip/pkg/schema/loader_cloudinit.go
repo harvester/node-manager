@@ -17,9 +17,10 @@ package schema
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	cloudconfig "github.com/mudler/yip/pkg/schema/cloudinit"
-	"github.com/twpayne/go-vfs"
+	"github.com/twpayne/go-vfs/v4"
 )
 
 type cloudInit struct{}
@@ -29,7 +30,7 @@ type cloudInit struct{}
 // to a yip schema.
 // As Yip supports multi-stages, it is encoded in the supplied one.
 // fs is used to parse the user data required from /etc/passwd.
-func (cloudInit) Load(s []byte, fs vfs.FS) (*YipConfig, error) {
+func (cloudInit) Load(source string, s []byte, fs vfs.FS) (*YipConfig, error) {
 	cc, err := cloudconfig.NewCloudConfig(string(s))
 	if err != nil {
 		return nil, err
@@ -90,11 +91,30 @@ func (cloudInit) Load(s []byte, fs vfs.FS) (*YipConfig, error) {
 		f = append(f, newFile)
 	}
 
+	// Check the keys to know if we need to move them into the network stage
+	// (if they are github or gitlab keys we assume they need network)
+	// Separate them into 2 groups
+	networkSshKeys := map[string][]string{}
+	noNetworkSshKeys := map[string][]string{}
+
+	for user, keys := range sshKeys {
+		for _, key := range keys {
+			if strings.HasPrefix(key, "gitlab") || strings.HasPrefix(key, "github") {
+				networkSshKeys[user] = append(networkSshKeys[user], key)
+			} else {
+				noNetworkSshKeys[user] = append(noNetworkSshKeys[user], key)
+			}
+		}
+	}
 	stages := []Stage{{
 		Commands: cc.RunCmd,
 		Files:    f,
 		Users:    users,
-		SSHKeys:  sshKeys,
+		SSHKeys:  noNetworkSshKeys,
+	}}
+
+	networkSshKeysStage := []Stage{{
+		SSHKeys: networkSshKeys,
 	}}
 
 	for _, d := range cc.Partitioning.Devices {
@@ -104,18 +124,18 @@ func (cloudInit) Load(s []byte, fs vfs.FS) (*YipConfig, error) {
 		stages = append(stages, Stage{Layout: *layout})
 	}
 
-	result := &YipConfig{
-		Name: "Cloud init",
-		Stages: map[string][]Stage{
-			"boot": stages,
-			"initramfs": {{
-				Hostname: cc.Hostname,
-			}},
-		},
+	finalStages := map[string][]Stage{
+		"boot": stages,
+		"initramfs": {{
+			Hostname: cc.Hostname,
+		}},
+		"network": networkSshKeysStage,
 	}
 
+	result := &YipConfig{Stages: finalStages}
+
 	// optimistically load data as yip yaml
-	yipConfig, err := yipYAML{}.Load(s, fs)
+	yipConfig, err := yipYAML{}.Load(source, s, fs)
 	if err == nil {
 		for k, v := range yipConfig.Stages {
 			result.Stages[k] = append(result.Stages[k], v...)
