@@ -3,23 +3,23 @@ module github.com/harvester/node-manager
 go 1.21
 
 replace (
-	k8s.io/api => k8s.io/api v0.24.14
-	k8s.io/apimachinery => k8s.io/apimachinery v0.24.14
-	k8s.io/client-go => k8s.io/client-go v0.24.14
-	k8s.io/cloud-provider => k8s.io/cloud-provider v0.24.14
-	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.24.14
-	k8s.io/code-generator => k8s.io/code-generator v0.24.14
-	k8s.io/controller-manager => k8s.io/controller-manager v0.24.14
-	k8s.io/cri-api => k8s.io/cri-api v0.24.14
-	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.24.14
-	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.24.14
-	k8s.io/kube-proxy => k8s.io/kube-proxy v0.24.14
-	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.24.14
-	k8s.io/kubelet => k8s.io/kubelet v0.24.14
+	k8s.io/api => k8s.io/api v0.34.1
+	k8s.io/apimachinery => k8s.io/apimachinery v0.34.1
+	k8s.io/client-go => k8s.io/client-go v0.34.1
+	k8s.io/cloud-provider => k8s.io/cloud-provider v0.34.1
+	k8s.io/cluster-bootstrap => k8s.io/cluster-bootstrap v0.34.1
+	k8s.io/code-generator => k8s.io/code-generator v0.34.1
+	k8s.io/controller-manager => k8s.io/controller-manager v0.34.1
+	k8s.io/cri-api => k8s.io/cri-api v0.34.1
+	k8s.io/csi-translation-lib => k8s.io/csi-translation-lib v0.34.1
+	k8s.io/kube-controller-manager => k8s.io/kube-controller-manager v0.34.1
+	k8s.io/kube-proxy => k8s.io/kube-proxy v0.34.1
+	k8s.io/kube-scheduler => k8s.io/kube-scheduler v0.34.1
+	k8s.io/kubelet => k8s.io/kubelet v0.34.1
 	k8s.io/kubernetes => k8s.io/kubernetes v0.24.14
-	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.24.14
-	k8s.io/mount-utils => k8s.io/mount-utils v0.24.14
-	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.24.14
+	k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.30.14
+	k8s.io/mount-utils => k8s.io/mount-utils v0.34.1
+	k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.34.1
 )
 
 require (
@@ -38,8 +38,8 @@ require (
 	github.com/twpayne/go-vfs v1.7.2
 	github.com/urfave/cli/v2 v2.3.0
 	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
-	k8s.io/api v0.28.0
-	k8s.io/apimachinery v0.28.0
+	k8s.io/api v0.34.1
+	k8s.io/apimachinery v0.34.1
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/klog v1.0.0
 )
