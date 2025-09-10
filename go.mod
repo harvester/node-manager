@@ -25,14 +25,14 @@ replace (
 require (
 	github.com/ehazlett/simplelog v0.0.0-20200226020431-d374894e92a4
 	github.com/godbus/dbus/v5 v5.1.0
-	github.com/harvester/go-common v0.0.0-20230718010724-11313421a8f5
+	github.com/harvester/go-common a03d83f41a0f
 	github.com/mudler/yip v1.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.16.0
 	github.com/rancher/lasso v0.0.0-20230629200414-8a54b32e6792
-	github.com/rancher/wrangler v1.1.1-0.20230818201331-3604a6be798d
+	github.com/rancher/wrangler v1.1.2
 	github.com/shirou/gopsutil/v3 v3.22.7
-	github.com/sirupsen/logrus v1.9.2
+	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.8.3
 	github.com/twpayne/go-vfs v1.7.2
