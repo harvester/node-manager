@@ -29,7 +29,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/itchyny/gojq"
-	"github.com/twpayne/go-vfs"
+	"github.com/twpayne/go-vfs/v4"
 	"gopkg.in/yaml.v2"
 )
 
@@ -63,8 +63,9 @@ type Directory struct {
 }
 
 type DataSource struct {
-	Providers []string `yaml:"providers,omitempty"`
-	Path      string   `yaml:"path,omitempty"`
+	Providers    []string `yaml:"providers,omitempty"`
+	Path         string   `yaml:"path,omitempty"`
+	UserdataName string   `yaml:"userdata_name,omitempty"`
 }
 
 type Git struct {
@@ -152,6 +153,8 @@ type Stage struct {
 	Systemctl       Systemctl           `yaml:"systemctl,omitempty"`
 	Environment     map[string]string   `yaml:"environment,omitempty"`
 	EnvironmentFile string              `yaml:"environment_file,omitempty"`
+	Packages        Packages            `yaml:"packages,omitempty"`
+	UnpackImages    []UnpackImageConf   `yaml:"unpack_images,omitempty"`
 
 	After []Dependency `yaml:"after,omitempty"`
 
@@ -162,13 +165,38 @@ type Stage struct {
 
 	TimeSyncd map[string]string `yaml:"timesyncd,omitempty"`
 	Git       Git               `yaml:"git,omitempty"`
+
+	OnlyIfOs             string `yaml:"only_os,omitempty"`
+	OnlyIfOsVersion      string `yaml:"only_os_version,omitempty"`
+	OnlyIfArch           string `yaml:"only_arch,omitempty"`
+	OnlyIfServiceManager string `yaml:"only_service_manager,omitempty"`
+}
+
+type UnpackImageConf struct {
+	Source   string `yaml:"source,omitempty"`
+	Target   string `yaml:"target,omitempty"`
+	Platform string `yaml:"platform,omitempty"`
+}
+
+type SystemctlOverride struct {
+	Service string `yaml:"service,omitempty"`
+	Content string `yaml:"content,omitempty"`
+	Name    string `yaml:"name,omitempty"`
 }
 
 type Systemctl struct {
-	Enable  []string `yaml:"enable,omitempty"`
-	Disable []string `yaml:"disable,omitempty"`
-	Start   []string `yaml:"start,omitempty"`
-	Mask    []string `yaml:"mask,omitempty"`
+	Enable    []string            `yaml:"enable,omitempty"`
+	Disable   []string            `yaml:"disable,omitempty"`
+	Start     []string            `yaml:"start,omitempty"`
+	Mask      []string            `yaml:"mask,omitempty"`
+	Overrides []SystemctlOverride `yaml:"overrides,omitempty"`
+}
+
+type Packages struct {
+	Install []string `yaml:"install,omitempty"`
+	Remove  []string `yaml:"remove,omitempty"`
+	Refresh bool     `yaml:"refresh,omitempty"`
+	Upgrade bool     `yaml:"upgrade,omitempty"`
 }
 
 type DNS struct {
@@ -179,15 +207,25 @@ type DNS struct {
 }
 
 type YipConfig struct {
+	Source string             `yaml:"-"`
 	Name   string             `yaml:"name,omitempty"`
 	Stages map[string][]Stage `yaml:"stages,omitempty"`
+}
+
+// ToString returns the yaml representation of the YipConfig
+func (y *YipConfig) ToString() string {
+	s, err := yaml.Marshal(y)
+	if err != nil {
+		return ""
+	}
+	return string(s)
 }
 
 type Loader func(s string, fs vfs.FS, m Modifier) ([]byte, error)
 type Modifier func(s []byte) ([]byte, error)
 
 type yipLoader interface {
-	Load([]byte, vfs.FS) (*YipConfig, error)
+	Load(string, []byte, vfs.FS) (*YipConfig, error)
 }
 
 func Load(s string, fs vfs.FS, l Loader, m Modifier) (*YipConfig, error) {
@@ -206,7 +244,7 @@ func Load(s string, fs vfs.FS, l Loader, m Modifier) (*YipConfig, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid file type")
 	}
-	return loader.Load(data, fs)
+	return loader.Load(s, data, fs)
 }
 
 func detect(b []byte) (yipLoader, error) {
