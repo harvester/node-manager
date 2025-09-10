@@ -25,12 +25,12 @@ replace (
 require (
 	github.com/ehazlett/simplelog v0.0.0-20200226020431-d374894e92a4
 	github.com/godbus/dbus/v5 v5.1.0
-	github.com/harvester/go-common v0.0.0-20240903083523-9576346cda75
+	github.com/harvester/go-common a03d83f41a0f
 	github.com/mudler/yip v1.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0
-	github.com/rancher/lasso v0.2.3
-	github.com/rancher/wrangler/v3 v3.2.2
+	github.com/rancher/lasso v0.2.4
+	github.com/rancher/wrangler/v3 v3.2.3
 	github.com/shirou/gopsutil/v3 v3.22.7
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.16.0
@@ -45,7 +45,7 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/harvester/webhook v0.1.4
+	github.com/harvester/webhook v0.1.5
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/melbahja/goph v1.4.0
 	github.com/urfave/cli/v2 v2.3.0
@@ -137,4 +137,4 @@ require (
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
-replace github.com/rancher/wrangler => github.com/rancher/wrangler v1.1.1-0.20230818201331-3604a6be798d
+replace github.com/rancher/wrangler => github.com/rancher/wrangler v1.1.2
