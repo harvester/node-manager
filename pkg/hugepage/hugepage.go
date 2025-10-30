@@ -4,22 +4,20 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strconv"
+	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/prometheus/procfs"
-	"github.com/rancher/wrangler/v3/pkg/ticker"
 	"github.com/sirupsen/logrus"
 
 	nodev1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 )
 
 const (
-	MonitorInterval     = time.Second * 30
-	THPEnabledPath      = "/sys/kernel/mm/transparent_hugepage/enabled"
-	THPShmemEnabledPath = "/sys/kernel/mm/transparent_hugepage/shmem_enabled"
-	THPDefragPath       = "/sys/kernel/mm/transparent_hugepage/defrag"
+	THPPath             = "/sys/kernel/mm/transparent_hugepage/"
+	THPEnabledFile      = "enabled"
+	THPShmemEnabledFile = "shmem_enabled"
+	THPDefragFile       = "defrag"
 )
 
 var (
@@ -27,60 +25,37 @@ var (
 )
 
 type Manager struct {
-	ctx context.Context
-
-	statCh chan *nodev1beta1.HugepageStatus
-	specCh chan *nodev1beta1.HugepageSpec
-
-	procFs procfs.FS
+	ctx     context.Context
+	procFs  procfs.FS
+	thpPath string
 }
 
-func NewHugepageManager(ctx context.Context) *Manager {
-	procFs, _ := procfs.NewFS("/proc")
-
+func NewHugepageManager(ctx context.Context, THPPath string) (*Manager, error) {
+	procFs, err := procfs.NewFS("/proc")
+	if err != nil {
+		return nil, fmt.Errorf("error initialising hugepage manager: %w", err)
+	}
 	manager = &Manager{
-		ctx:    ctx,
-		statCh: make(chan *nodev1beta1.HugepageStatus, 10),
-		specCh: make(chan *nodev1beta1.HugepageSpec, 1),
-		procFs: procFs,
+		ctx:     ctx,
+		procFs:  procFs,
+		thpPath: THPPath,
 	}
-	go manager.run()
-	return manager
+
+	return manager, nil
 }
 
-func (h *Manager) run() {
-	t := ticker.Context(h.ctx, MonitorInterval)
-	for {
-		select {
-		case s := <-h.specCh:
-			logrus.Debug("updating hugepage settings")
-			if err := h.writeTHPConfig(&s.Transparent); err != nil {
-				logrus.Errorf("failed to update transparent hugepage config: %v", err)
-			}
-		case <-t:
-			logrus.Debug("updating hugepage status")
-		case <-h.ctx.Done():
-			return
-		}
-
-		if err := h.updateStatus(); err != nil {
-			logrus.Errorf("failed to update hugepage status: %v", err)
-		}
-	}
-}
-
-func (h *Manager) updateStatus() error {
+func (h *Manager) GenerateStatus() (*nodev1beta1.HugepageStatus, error) {
 	meminfo, err := h.readProcMeminfo()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	thpConfig, err := h.readTHPConfig()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	h.statCh <- &nodev1beta1.HugepageStatus{
+	return &nodev1beta1.HugepageStatus{
 		Transparent: *thpConfig,
 		Meminfo: nodev1beta1.Meminfo{
 			AnonHugePages:  *meminfo.AnonHugePagesBytes,
@@ -91,16 +66,7 @@ func (h *Manager) updateStatus() error {
 			HugePagesSurp:  *meminfo.HugePagesSurp,
 			HugepageSize:   *meminfo.HugepagesizeBytes,
 		},
-	}
-	return nil
-}
-
-func (h *Manager) GetStatusChan() <-chan *nodev1beta1.HugepageStatus {
-	return h.statCh
-}
-
-func (h *Manager) GetSpecChan() chan<- *nodev1beta1.HugepageSpec {
-	return h.specCh
+	}, nil
 }
 
 // GetDefaultTHPConfig returns the system's current THP config, or if that
@@ -131,7 +97,7 @@ func (h *Manager) readProcMeminfo() (*procfs.Meminfo, error) {
 }
 
 func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
-	enabledLine, err := h.read(THPEnabledPath)
+	enabledLine, err := h.read(filepath.Join(h.thpPath, THPEnabledFile))
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +106,7 @@ func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 		return nil, err
 	}
 
-	shmemEnabledLine, err := h.read(THPShmemEnabledPath)
+	shmemEnabledLine, err := h.read(filepath.Join(h.thpPath, THPShmemEnabledFile))
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +115,7 @@ func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 		return nil, err
 	}
 
-	defragLine, err := h.read(THPDefragPath)
+	defragLine, err := h.read(filepath.Join(h.thpPath, THPDefragFile))
 	if err != nil {
 		return nil, err
 	}
@@ -165,27 +131,14 @@ func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 	}, nil
 }
 
-func (h *Manager) readSysfsUint64(path string) (uint64, error) {
-	rawStr, err := h.read(path)
-	if err != nil {
-		return 0, fmt.Errorf("failed to read path %v: %v", path, err)
-	}
-
-	num, err := strconv.ParseUint(strings.TrimSpace(rawStr), 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("failed to parse %v: %v", rawStr, err)
-	}
-	return num, nil
-}
-
-func (h *Manager) writeTHPConfig(thp *nodev1beta1.THPConfig) error {
-	if err := h.write(THPEnabledPath, string(thp.Enabled)); err != nil {
+func (h *Manager) ApplyConfig(thp *nodev1beta1.THPConfig) error {
+	if err := h.write(filepath.Join(h.thpPath, THPEnabledFile), string(thp.Enabled)); err != nil {
 		return err
 	}
-	if err := h.write(THPShmemEnabledPath, string(thp.ShmemEnabled)); err != nil {
+	if err := h.write(filepath.Join(h.thpPath, THPShmemEnabledFile), string(thp.ShmemEnabled)); err != nil {
 		return err
 	}
-	if err := h.write(THPDefragPath, string(thp.Defrag)); err != nil {
+	if err := h.write(filepath.Join(h.thpPath, THPDefragFile), string(thp.Defrag)); err != nil {
 		return err
 	}
 	return nil
@@ -210,8 +163,7 @@ func (h *Manager) write(path, value string) error {
 	if err != nil {
 		return err
 	}
-	f.Sync()
-	return nil
+	return f.Sync()
 }
 
 func parse(line string) (string, error) {
