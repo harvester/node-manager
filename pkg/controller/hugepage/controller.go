@@ -2,7 +2,9 @@ package hugepage
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"time"
 
 	ctlnode "github.com/rancher/wrangler/v3/pkg/generated/controllers/core/v1"
 	"github.com/sirupsen/logrus"
@@ -16,6 +18,7 @@ import (
 const (
 	HugepageHandlerName     = "harvester-hugepage-handler"
 	HugepageNodeHandlerName = "harvester-hugepage-node-handler"
+	MonitorInterval         = 30 * time.Second
 )
 
 type Controller struct {
@@ -33,8 +36,10 @@ type Controller struct {
 }
 
 func Register(ctx context.Context, name string, hugepagectl ctlhugepage.HugepageController, nodes ctlnode.NodeController) (*Controller, error) {
-	man := hugepage.NewHugepageManager(ctx)
-
+	mgr, err := hugepage.NewHugepageManager(ctx, hugepage.THPPath)
+	if err != nil {
+		return nil, err
+	}
 	c := &Controller{
 		ctx:             ctx,
 		Name:            name,
@@ -42,14 +47,12 @@ func Register(ctx context.Context, name string, hugepagectl ctlhugepage.Hugepage
 		HugepageClient:  hugepagectl,
 		NodeCache:       nodes.Cache(),
 		Nodes:           nodes,
-		HugepageManager: man,
+		HugepageManager: mgr,
 	}
 
 	c.HugepageClient.OnChange(ctx, HugepageHandlerName, c.OnChange)
 
 	c.Nodes.OnChange(ctx, HugepageNodeHandlerName, c.NodeOnChange)
-
-	go c.Watch(ctx, name)
 
 	return c, nil
 }
@@ -59,32 +62,33 @@ func (c *Controller) OnChange(key string, hugetlb *nodev1beta1.Hugepage) (*nodev
 		return hugetlb, nil
 	}
 
-	ch := c.HugepageManager.GetSpecChan()
-	ch <- &hugetlb.Spec
-	return hugetlb, nil
-}
+	logrus.WithField("name", key).Debug("reconcilling hugepages object")
+	observedStatus, err := c.HugepageManager.GenerateStatus()
+	if err != nil {
+		return hugetlb, fmt.Errorf("error generating hugepage status: %w", err)
+	}
 
-func (c *Controller) Watch(ctx context.Context, name string) {
-	ch := c.HugepageManager.GetStatusChan()
-	for {
-		select {
-		case s := <-ch:
-			oldObj, err := c.HugepageCache.Get(name)
-			if err != nil {
-				logrus.Errorf("failed to get hugepage %v: %v", name, err)
-				continue
-			}
+	// if observedConfig is not the same as defined config, we need to bring it in sync
+	if !reflect.DeepEqual(hugetlb.Spec.Transparent, observedStatus.Transparent) {
+		// apply config and return
+		// if there is no error requeue object which will cause observedStatus
+		// to be regenerated and applied to object
+		logrus.WithField("name", key).Debugf("attempting to apply hugepages configuration")
+		if err := c.HugepageManager.ApplyConfig(&hugetlb.Spec.Transparent); err == nil {
+			c.HugepageClient.Enqueue(key)
+		}
+		return hugetlb, err
+	}
 
-			if !reflect.DeepEqual(oldObj.Status, s) {
-				newObj := oldObj.DeepCopy()
-				newObj.Status = *s
-
-				if _, err := c.HugepageClient.UpdateStatus(newObj); err != nil {
-					logrus.Errorf("failed to update hugepage status %v: %v", name, err)
-				}
-			}
-		case <-ctx.Done():
-			return
+	if !reflect.DeepEqual(hugetlb.Status, observedStatus) {
+		hugetlbCopy := hugetlb.DeepCopy()
+		hugetlbCopy.Status = *observedStatus
+		if updatedObj, err := c.HugepageClient.UpdateStatus(hugetlbCopy); err != nil {
+			return updatedObj, err
 		}
 	}
+
+	// requeue object to recheck after every MonitorInterval
+	c.HugepageClient.EnqueueAfter(key, MonitorInterval)
+	return hugetlb, nil
 }
