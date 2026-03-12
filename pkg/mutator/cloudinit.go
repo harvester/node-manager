@@ -30,11 +30,11 @@ func (m *CloudInit) Update(_ *admission.Request, _ runtime.Object, newObj runtim
 }
 
 func patchFilenameIfNecessary(newCloudInit *v1beta1.CloudInit) (admission.Patch, error) {
-	var patch admission.Patch
+	patch := make(admission.Patch, 0, 1)
 
 	filename := ensureFileExtension(filepath.Base(newCloudInit.Spec.Filename))
 	if filename == newCloudInit.Spec.Filename {
-		return patch, nil
+		return nil, nil
 	}
 
 	p := admission.PatchOp{
