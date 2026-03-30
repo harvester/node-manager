@@ -12,7 +12,7 @@ if [[ -n ${BUILD_FOR_CI} ]]; then
 fi
 DOCKERFILE=package/Dockerfile
 
-buildx build --load \
+docker buildx build --load \
     -f ${DOCKERFILE} -t ${IMAGE} .
 echo Built ${IMAGE}
 
