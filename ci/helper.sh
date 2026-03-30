@@ -40,8 +40,11 @@ export KUBECONFIG=$VAGRANT_RANCHERD_DIR/kubeconfig
 
 if [[ $(ensure_command helm) -eq 1 ]]; then
   echo "no helm, try to curl..."
-  curl -O https://get.helm.sh/helm-v3.9.4-linux-amd64.tar.gz
-  tar -zxvf helm-v3.9.4-linux-amd64.tar.gz
+  HELM_VERSION=3.9.4
+  HELM_SUM_AMD64=31960ff2f76a7379d9bac526ddf889fb79241191f1dbe2a24f7864ddcb3f6560
+  curl --output /tmp/helm.tar.gz -sLf "https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz" && \
+    echo "${HELM_SUM_AMD64}  /tmp/helm.tar.gz" | sha256sum -c - && \
+    tar -xvzf /tmp/helm.tar.gz -C $TOP_DIR
   HELM=$TOP_DIR/linux-amd64/helm
   $HELM version
 else
