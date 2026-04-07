@@ -40,7 +40,7 @@ require (
 	github.com/spf13/viper v1.16.0
 	github.com/stretchr/testify v1.10.0
 	github.com/twpayne/go-vfs v1.7.2
-	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
+	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0 // indirect
 	k8s.io/api v0.34.5
 	k8s.io/apimachinery v0.34.5
 	k8s.io/client-go v12.0.0+incompatible
@@ -54,8 +54,8 @@ require (
 	github.com/melbahja/goph v1.4.0
 	github.com/prometheus/procfs v0.15.1
 	github.com/urfave/cli/v2 v2.3.0
+	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/sys v0.31.0
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -127,6 +127,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.33.1 // indirect
 	k8s.io/code-generator v0.34.5 // indirect
 	k8s.io/gengo v0.0.0-20250130153323-76c5745d3511 // indirect

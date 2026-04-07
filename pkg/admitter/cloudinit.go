@@ -7,13 +7,13 @@ import (
 	"path/filepath"
 
 	"github.com/harvester/webhook/pkg/server/admission"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
-	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
+	"github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	clientset "github.com/harvester/node-manager/pkg/generated/clientset/versioned"
 	cloudinitv1beta1 "github.com/harvester/node-manager/pkg/generated/clientset/versioned/typed/node.harvesterhci.io/v1beta1"
 )
@@ -58,14 +58,8 @@ func (v *CloudInit) Create(_ *admission.Request, newObj runtime.Object) error {
 	return v.validate(newCloudInit)
 }
 
-func (v *CloudInit) Update(_ *admission.Request, oldObj runtime.Object, newObj runtime.Object) error {
-	oldCloudInit := oldObj.(*v1beta1.CloudInit)
+func (v *CloudInit) Update(_ *admission.Request, _ runtime.Object, newObj runtime.Object) error {
 	newCloudInit := newObj.(*v1beta1.CloudInit)
-
-	if oldCloudInit.Spec.Filename == newCloudInit.Spec.Filename {
-		return nil
-	}
-
 	return v.validate(newCloudInit)
 }
 
@@ -78,7 +72,7 @@ func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit) error {
 		return errProtectedFilename
 	}
 
-	taken, err := v.isFilenameTaken(cloudinit.Spec.Filename)
+	taken, err := v.isFilenameTaken(cloudinit)
 	if err != nil {
 		return fmt.Errorf("check for duplicate filename: %w", err)
 	}
@@ -87,13 +81,7 @@ func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit) error {
 		return errFilenameTaken
 	}
 
-	var obj map[string]any
-	var typeErr *yaml.TypeError
-	err = yaml.Unmarshal([]byte(cloudinit.Spec.Contents), &obj)
-	if errors.As(err, &typeErr) {
-		return errNotYAML
-	}
-	if err != nil {
+	if err := isYaml(cloudinit.Spec.Contents); err != nil {
 		return err
 	}
 
@@ -105,14 +93,17 @@ func (v *CloudInit) missingExtension(name string) bool {
 	return ext != ".yaml" && ext != ".yml"
 }
 
-func (v *CloudInit) isFilenameTaken(name string) (bool, error) {
+func (v *CloudInit) isFilenameTaken(cloudinit *v1beta1.CloudInit) (bool, error) {
 	cloudinits, err := v.cloudinits.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return true, err
 	}
 
-	for _, cloudinit := range cloudinits.Items {
-		if cloudinit.Spec.Filename == name {
+	for _, existing := range cloudinits.Items {
+		if existing.Name == cloudinit.Name {
+			continue
+		}
+		if existing.Spec.Filename == cloudinit.Spec.Filename {
 			return true, nil
 		}
 	}
@@ -127,6 +118,21 @@ func (v *CloudInit) isProtectedFilename(name string) bool {
 		}
 	}
 	return false
+}
+
+// isYaml checks whether content is empty or a valid YAML mapping document,
+// which is the only structure cloud-init accepts.
+func isYaml(contents string) error {
+	var obj map[string]any
+	var typeErr *yaml.LoadErrors
+	err := yaml.Unmarshal([]byte(contents), &obj)
+	if errors.As(err, &typeErr) {
+		return errNotYAML
+	}
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (v *CloudInit) Resource() admission.Resource {
