@@ -4,16 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path/filepath"
+	"strings"
 
 	"github.com/harvester/webhook/pkg/server/admission"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v4"
 	admissionregv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 
-	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
+	"github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	clientset "github.com/harvester/node-manager/pkg/generated/clientset/versioned"
 	cloudinitv1beta1 "github.com/harvester/node-manager/pkg/generated/clientset/versioned/typed/node.harvesterhci.io/v1beta1"
 )
@@ -55,21 +57,16 @@ func NewCloudInitValidator(config *rest.Config) (*CloudInit, error) {
 
 func (v *CloudInit) Create(_ *admission.Request, newObj runtime.Object) error {
 	newCloudInit := newObj.(*v1beta1.CloudInit)
-	return v.validate(newCloudInit)
+	return v.validate(newCloudInit, "")
 }
 
 func (v *CloudInit) Update(_ *admission.Request, oldObj runtime.Object, newObj runtime.Object) error {
 	oldCloudInit := oldObj.(*v1beta1.CloudInit)
 	newCloudInit := newObj.(*v1beta1.CloudInit)
-
-	if oldCloudInit.Spec.Filename == newCloudInit.Spec.Filename {
-		return nil
-	}
-
-	return v.validate(newCloudInit)
+	return v.validate(newCloudInit, oldCloudInit.Name)
 }
 
-func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit) error {
+func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit, ignoreName string) error {
 	if v.missingExtension(cloudinit.Spec.Filename) {
 		return errMissingExt
 	}
@@ -78,7 +75,7 @@ func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit) error {
 		return errProtectedFilename
 	}
 
-	taken, err := v.isFilenameTaken(cloudinit.Spec.Filename)
+	taken, err := v.isFilenameTaken(cloudinit.Spec.Filename, ignoreName)
 	if err != nil {
 		return fmt.Errorf("check for duplicate filename: %w", err)
 	}
@@ -87,13 +84,7 @@ func (v *CloudInit) validate(cloudinit *v1beta1.CloudInit) error {
 		return errFilenameTaken
 	}
 
-	var obj map[string]any
-	var typeErr *yaml.TypeError
-	err = yaml.Unmarshal([]byte(cloudinit.Spec.Contents), &obj)
-	if errors.As(err, &typeErr) {
-		return errNotYAML
-	}
-	if err != nil {
+	if err := isYaml(cloudinit.Spec.Contents); err != nil {
 		return err
 	}
 
@@ -105,13 +96,16 @@ func (v *CloudInit) missingExtension(name string) bool {
 	return ext != ".yaml" && ext != ".yml"
 }
 
-func (v *CloudInit) isFilenameTaken(name string) (bool, error) {
+func (v *CloudInit) isFilenameTaken(name, ignoreName string) (bool, error) {
 	cloudinits, err := v.cloudinits.List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return true, err
 	}
 
 	for _, cloudinit := range cloudinits.Items {
+		if cloudinit.Name == ignoreName {
+			continue
+		}
 		if cloudinit.Spec.Filename == name {
 			return true, nil
 		}
@@ -127,6 +121,37 @@ func (v *CloudInit) isProtectedFilename(name string) bool {
 		}
 	}
 	return false
+}
+
+// isYaml checks whether the specified content is empty or a valid YAML document
+// whose root value is a mapping, as expected by CloudInit.
+func isYaml(contents string) error {
+	// Use `NewLoader` for more control over the parsing process.
+	loader, err := yaml.NewLoader(strings.NewReader(contents))
+	if err != nil {
+		return err
+	}
+
+	var node yaml.Node
+	if err := loader.Load(&node); err != nil {
+		if errors.Is(err, io.EOF) {
+			// Keep backward compatibility: empty content has historically
+			// been accepted.
+			return nil
+		}
+		return err
+	}
+
+	// Keep backward compatibility: empty content has historically been accepted.
+	if len(node.Content) == 0 {
+		return nil
+	}
+
+	if node.Kind != yaml.DocumentNode || len(node.Content) != 1 || node.Content[0].Kind != yaml.MappingNode {
+		return errNotYAML
+	}
+
+	return nil
 }
 
 func (v *CloudInit) Resource() admission.Resource {
