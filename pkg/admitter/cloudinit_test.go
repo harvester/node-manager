@@ -6,12 +6,14 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/watch"
 
-	v1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 	"github.com/harvester/webhook/pkg/server/admission"
+
+	"github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 )
 
 func TestProtectedFilenames(t *testing.T) {
@@ -55,7 +57,8 @@ func TestCreate(t *testing.T) {
 		{"filename collision", v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}, errFilenameTaken},
 		{"conflicts with protected file", v1beta1.CloudInitSpec{Filename: "helloworld.yaml"}, errProtectedFilename},
 		{"not yaml or yml file ext", v1beta1.CloudInitSpec{Filename: "a"}, errMissingExt},
-		{"not yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "hello, there"}, errNotYAML},
+		{"scalar root yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "hello, there"}, errNotYAML},
+		{"sequence root yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "- a\n- b"}, errNotYAML},
 	}
 
 	for _, tt := range tests {
@@ -96,7 +99,8 @@ func TestUpdate(t *testing.T) {
 		{"filename collision", v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}, errFilenameTaken},
 		{"conflicts with protected file", v1beta1.CloudInitSpec{Filename: "helloworld.yaml"}, errProtectedFilename},
 		{"not yaml or yml file ext", v1beta1.CloudInitSpec{Filename: "a"}, errMissingExt},
-		{"not yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "hello, there"}, errNotYAML},
+		{"scalar root yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "hello, there"}, errNotYAML},
+		{"sequence root yaml contents", v1beta1.CloudInitSpec{Filename: "not.yaml", Contents: "- a\n- b"}, errNotYAML},
 	}
 
 	for _, tt := range tests {
@@ -117,6 +121,128 @@ func TestUpdate(t *testing.T) {
 			if !errors.Is(got, tt.want) {
 				t.Errorf("want err=%v, got err=%v", tt.want, got)
 			}
+		})
+	}
+}
+
+func TestUpdateRegressionCases(t *testing.T) {
+	tests := []struct {
+		name      string
+		existing  []v1beta1.CloudInit
+		oldSpec   v1beta1.CloudInitSpec
+		newSpec   v1beta1.CloudInitSpec
+		wantError error
+	}{
+		{
+			name:      "unchanged filename still validates contents",
+			oldSpec:   v1beta1.CloudInitSpec{Filename: "same.yaml", Contents: "a: b"},
+			newSpec:   v1beta1.CloudInitSpec{Filename: "same.yaml", Contents: "hello, there"},
+			wantError: errNotYAML,
+		},
+		{
+			name: "ignore current object for duplicate filename",
+			existing: []v1beta1.CloudInit{{
+				ObjectMeta: v1.ObjectMeta{Name: "test-cloudinit"},
+				Spec:       v1beta1.CloudInitSpec{Filename: "same.yaml"},
+			}},
+			oldSpec: v1beta1.CloudInitSpec{Filename: "same.yaml", Contents: "k: v"},
+			newSpec: v1beta1.CloudInitSpec{Filename: "same.yaml", Contents: "k: new"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctl := &CloudInit{cloudinits: &mockClient{list: tt.existing}}
+			old := &v1beta1.CloudInit{
+				ObjectMeta: v1.ObjectMeta{Name: "test-cloudinit"},
+				Spec:       tt.oldSpec,
+			}
+			newObj := &v1beta1.CloudInit{
+				ObjectMeta: v1.ObjectMeta{Name: "test-cloudinit"},
+				Spec:       tt.newSpec,
+			}
+			got := ctl.Update(new(admission.Request), old, newObj)
+			if tt.wantError != nil {
+				assert.ErrorIs(t, got, tt.wantError)
+			} else {
+				assert.NoError(t, got)
+			}
+		})
+	}
+}
+
+func TestIsYaml(t *testing.T) {
+	tests := []struct {
+		name           string
+		contents       string
+		wantErrNotYAML bool
+		wantOtherErr   bool
+	}{
+		{name: "empty content is allowed", contents: ""},
+		{name: "whitespace content is allowed", contents: "   \n"},
+		{name: "mapping YAML is allowed", contents: "a: b"},
+		{name: "flow sequence YAML is allowed", contents: "a: [1, 2]"},
+		{name: "block sequence YAML is allowed", contents: "a:\n  - 1\n  - 2"},
+		{name: "nested mapping YAML is allowed", contents: "a:\n  b: c"},
+		{name: "scalar YAML is rejected", contents: "hello, there", wantErrNotYAML: true},
+		{name: "sequence YAML is rejected", contents: "- a\n- b", wantErrNotYAML: true},
+		{name: "invalid YAML syntax returns parser error", contents: "a: [1, 2", wantOtherErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := isYaml(tt.contents)
+			switch {
+			case tt.wantErrNotYAML:
+				assert.ErrorContains(t, err, errNotYAML.Error())
+			case tt.wantOtherErr:
+				assert.Error(t, err)
+			default:
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestIsFilenameTaken(t *testing.T) {
+	existing := []v1beta1.CloudInit{
+		{ObjectMeta: v1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
+		{ObjectMeta: v1.ObjectMeta{Name: "ntp-config"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ntp.yaml"}},
+	}
+
+	tests := []struct {
+		name      string
+		cloudInit *v1beta1.CloudInit
+		wantTaken bool
+	}{
+		{
+			name:      "filename not in use",
+			cloudInit: &v1beta1.CloudInit{ObjectMeta: v1.ObjectMeta{Name: "new"}, Spec: v1beta1.CloudInitSpec{Filename: "new-file.yaml"}},
+			wantTaken: false,
+		},
+		{
+			name:      "filename already taken",
+			cloudInit: &v1beta1.CloudInit{ObjectMeta: v1.ObjectMeta{Name: "new"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
+			wantTaken: true,
+		},
+		{
+			name:      "filename taken but ignored because it belongs to the same object",
+			cloudInit: &v1beta1.CloudInit{ObjectMeta: v1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ssh.yaml"}},
+			wantTaken: false,
+		},
+		{
+			name:      "filename taken by another object",
+			cloudInit: &v1beta1.CloudInit{ObjectMeta: v1.ObjectMeta{Name: "ssh-access"}, Spec: v1beta1.CloudInitSpec{Filename: "99_ntp.yaml"}},
+			wantTaken: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctl := &CloudInit{cloudinits: &mockClient{list: existing}}
+			taken, err := ctl.isFilenameTaken(tt.cloudInit)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantTaken, taken)
 		})
 	}
 }

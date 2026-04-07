@@ -6,7 +6,7 @@ import (
 	"github.com/mudler/yip/pkg/schema"
 	"github.com/sirupsen/logrus"
 	govfs "github.com/twpayne/go-vfs"
-	"gopkg.in/yaml.v1"
+	"go.yaml.in/yaml/v4"
 )
 
 var validateStages = []string{
