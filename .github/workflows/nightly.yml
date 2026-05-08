@@ -24,6 +24,7 @@ jobs:
       refs: ${{ inputs.ref }}
       release-tag-name: ${{ inputs.tag != '' && inputs.tag || format('{0}-head', inputs.ref) }}
       push: true
+      skip-ci: true
     secrets: inherit
 
   # Full nightly run: schedule, or workflow_dispatch without a specific ref
@@ -50,6 +51,7 @@ jobs:
     with:
       release-tag-name: master-head
       push: true
+      skip-ci: true
     secrets: inherit
 
   build-for-release-branches:
@@ -64,4 +66,5 @@ jobs:
       refs: ${{ matrix.branch }}
       release-tag-name: ${{ matrix.branch }}-head
       push: true
+      skip-ci: true
     secrets: inherit
