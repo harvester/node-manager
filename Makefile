@@ -14,6 +14,9 @@ export DOCKER_BUILDKIT
 MK_DOCKER_RUN_OPTS_TTY := $(if $(CI),,-it)
 export MK_DOCKER_RUN_OPTS_TTY
 
+BUILD_FOR_CI ?=
+export BUILD_FOR_CI
+
 ifdef CI
   BOLD  :=
   CYAN  :=
