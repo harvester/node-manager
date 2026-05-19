@@ -4,6 +4,7 @@ MK_REPO_ID := $(shell echo -n "$(ROOT)$$(cat /etc/machine-id 2>/dev/null)" | sha
 export MK_REPO_ID
 
 MK_HOST_ARCH := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
+export MK_HOST_ARCH
 
 MK_DOCKER_PROGRESS ?= plain
 export MK_DOCKER_PROGRESS
