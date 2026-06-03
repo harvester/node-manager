@@ -1,8 +1,6 @@
 module github.com/harvester/node-manager
 
-go 1.25
-
-toolchain go1.25.7
+go 1.26
 
 replace (
 	k8s.io/api => k8s.io/api v0.34.5
