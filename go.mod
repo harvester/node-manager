@@ -1,8 +1,6 @@
 module github.com/harvester/node-manager
 
-go 1.25
-
-toolchain go1.25.2
+go 1.26
 
 replace (
 	k8s.io/api => k8s.io/api v0.32.1
@@ -50,6 +48,7 @@ require (
 	github.com/harvester/webhook v0.1.4
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/melbahja/goph v1.4.0
+	github.com/prometheus/procfs v0.15.1
 	github.com/urfave/cli/v2 v2.3.0
 	golang.org/x/sys v0.31.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -98,7 +97,6 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
-	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rancher/dynamiclistener v0.3.5 // indirect
 	github.com/rancher/wrangler v1.1.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
