@@ -72,30 +72,36 @@ func restartKubelet() error {
 	return nil
 }
 
-func EnableV2DataEngine() error {
-	origHugepages, err := getNrHugepages()
-	if err != nil {
-		return err
-	}
-
-	// Write the persistent config first, so we know it's saved...
-	if err := UpdatePersistentOEMSettings(schema.Stage{
+func updateLonghornConfigPersistence() error {
+	stage := schema.Stage{
 		Name: spdkStageName,
 		Sysctl: map[string]string{
 			"vm.nr_hugepages": fmt.Sprintf("%d", hugepagesToAllocate),
 		},
-		Commands: []string{
-			"modprobe vfio_pci",
-			"modprobe uio_pci_generic",
-			"modprobe nvme_tcp",
-		},
-	}); err != nil {
+		Commands: []string{},
+	}
+
+	for _, module := range modulesToLoad {
+		stage.Commands = append(stage.Commands, fmt.Sprintf("modprobe %s", module))
+	}
+
+	return UpdatePersistentOEMSettings(stage)
+}
+
+func EnableV2DataEngine() error {
+	// Write the persistent config first, so we know it's saved...
+	if err := updateLonghornConfigPersistence(); err != nil {
 		return err
 	}
 
 	// ...then try to do the runtime activation (which may not succeed)
 	if err := modprobe(modulesToLoad, true); err != nil {
 		return fmt.Errorf("unable to load kernel modules %v: %v", modulesToLoad, err)
+	}
+
+	origHugepages, err := getNrHugepages()
+	if err != nil {
+		return err
 	}
 
 	if origHugepages >= hugepagesToAllocate {
