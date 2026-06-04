@@ -1,4 +1,4 @@
-ROOT              := $(realpath $(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
+ROOT := $(realpath $(dir $(realpath $(firstword $(MAKEFILE_LIST)))))
 
 MK_REPO_ID := $(shell echo -n "$(ROOT)$$(cat /etc/machine-id 2>/dev/null)" | sha256sum | cut -c1-8)
 export MK_REPO_ID
