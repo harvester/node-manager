@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	spdkStageName       = "Runtime SPDK Prerequisites"
-	hugepagesPath       = "/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
-	hugepagesToAllocate = 1024
+	spdkStageName = "Runtime SPDK Prerequisites"
+	hugepagesPath = "/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
 )
 
 var (
@@ -72,12 +71,9 @@ func restartKubelet() error {
 	return nil
 }
 
-func updateLonghornConfigPersistence() error {
+func updateLonghornConfigPersistence(hugepagesToAllocate uint64) error {
 	stage := schema.Stage{
-		Name: spdkStageName,
-		Sysctl: map[string]string{
-			"vm.nr_hugepages": fmt.Sprintf("%d", hugepagesToAllocate),
-		},
+		Name:     spdkStageName,
 		Commands: []string{},
 	}
 
@@ -85,12 +81,16 @@ func updateLonghornConfigPersistence() error {
 		stage.Commands = append(stage.Commands, fmt.Sprintf("modprobe %s", module))
 	}
 
+	if hugepagesToAllocate > 0 {
+		stage.Sysctl = map[string]string{"vm.nr_hugepages": fmt.Sprintf("%d", hugepagesToAllocate)}
+	}
+
 	return UpdatePersistentOEMSettings(stage)
 }
 
-func EnableV2DataEngine() error {
+func EnableV2DataEngine(hugepagesToAllocate uint64) error {
 	// Write the persistent config first, so we know it's saved...
-	if err := updateLonghornConfigPersistence(); err != nil {
+	if err := updateLonghornConfigPersistence(hugepagesToAllocate); err != nil {
 		return err
 	}
 
@@ -107,6 +107,10 @@ func EnableV2DataEngine() error {
 	if origHugepages >= hugepagesToAllocate {
 		// We've already got enough hugepages, and don't want to unnecessarily
 		// restart the kubelet, so no further action required
+		// (this also handles the zero case, kinda - at least, if hugepages
+		// are disabled, we won't bother trying to allocate any, but if
+		// hugepages were previously enabled, and later disabled, they will
+		// remain allocated until next reboot).
 		return nil
 	}
 
