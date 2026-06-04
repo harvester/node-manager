@@ -6,7 +6,7 @@ ARG MK_HOST_ARCH
 ENV ARCH=$MK_HOST_ARCH
 
 RUN zypper -n rm container-suseconnect && \
-    zypper -n install git curl docker gzip tar wget awk docker-buildx
+    zypper -n install git
 
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.11.4
 RUN go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.18.0
