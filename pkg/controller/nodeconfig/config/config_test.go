@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
@@ -193,27 +194,38 @@ func TestLonghornConfigPersistence(t *testing.T) {
 		t.Errorf("Unable to create %s", oemPath)
 	}
 
-	// Write longhorn config for V2 data engine enabled
-	err := updateLonghornConfigPersistence()
-	assert.Nil(t, err)
+	testLonghornConfigPersistence := func(hugepagesToAllocate uint64) {
+		err := updateLonghornConfigPersistence(hugepagesToAllocate)
+		assert.Nil(t, err)
 
-	// Should be able to load config
-	yipConfig, err := utils.LoadYipConfig(settingsOEMPath)
-	assert.Nil(t, err)
+		// Should be able to load config
+		yipConfig, err := utils.LoadYipConfig(settingsOEMPath)
+		assert.Nil(t, err)
 
-	// Config should be valid
-	assert.Equal(t, "oem_settings", yipConfig.Name)
-	// ...one top level stage ("initramfs"):
-	assert.Equal(t, 1, len(yipConfig.Stages))
-	assert.Contains(t, yipConfig.Stages, yipStageInitramfs)
-	// ...which in turn has one stage inside ("Runtime SPDK Prerequisites"):
-	assert.Equal(t, 1, len(yipConfig.Stages[yipStageInitramfs]))
-	assert.Equal(t, "Runtime SPDK Prerequisites", yipConfig.Stages[yipStageInitramfs][0].Name)
-	// ...which has a systctl to allocate 1024 hugepages
-	assert.Equal(t, "1024", yipConfig.Stages[yipStageInitramfs][0].Sysctl["vm.nr_hugepages"])
-	// ...and three modprobe commands
-	assert.Equal(t, 3, len(yipConfig.Stages[yipStageInitramfs][0].Commands))
-	assert.Equal(t, "modprobe vfio_pci", yipConfig.Stages[yipStageInitramfs][0].Commands[0])
-	assert.Equal(t, "modprobe uio_pci_generic", yipConfig.Stages[yipStageInitramfs][0].Commands[1])
-	assert.Equal(t, "modprobe nvme_tcp", yipConfig.Stages[yipStageInitramfs][0].Commands[2])
+		// Config should be valid
+		assert.Equal(t, "oem_settings", yipConfig.Name)
+		// ...one top level stage ("initramfs"):
+		assert.Equal(t, 1, len(yipConfig.Stages))
+		assert.Contains(t, yipConfig.Stages, yipStageInitramfs)
+		// ...which in turn has one stage inside ("Runtime SPDK Prerequisites"):
+		assert.Equal(t, 1, len(yipConfig.Stages[yipStageInitramfs]))
+		assert.Equal(t, "Runtime SPDK Prerequisites", yipConfig.Stages[yipStageInitramfs][0].Name)
+		if hugepagesToAllocate > 0 {
+			// ...which might have a systctl to allocate 1024 hugepages
+			assert.Equal(t, strconv.FormatUint(hugepagesToAllocate, 10), yipConfig.Stages[yipStageInitramfs][0].Sysctl["vm.nr_hugepages"])
+		} else {
+			// (or it might not)
+			assert.Equal(t, 0, len(yipConfig.Stages[yipStageInitramfs][0].Sysctl))
+		}
+		// ...and three modprobe commands
+		assert.Equal(t, 3, len(yipConfig.Stages[yipStageInitramfs][0].Commands))
+		assert.Equal(t, "modprobe vfio_pci", yipConfig.Stages[yipStageInitramfs][0].Commands[0])
+		assert.Equal(t, "modprobe uio_pci_generic", yipConfig.Stages[yipStageInitramfs][0].Commands[1])
+		assert.Equal(t, "modprobe nvme_tcp", yipConfig.Stages[yipStageInitramfs][0].Commands[2])
+	}
+
+	// Write longhorn config for V2 data engine enabled with various numbers of hugepages
+	testLonghornConfigPersistence(1024)
+	testLonghornConfigPersistence(512)
+	testLonghornConfigPersistence(0)
 }

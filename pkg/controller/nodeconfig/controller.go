@@ -70,7 +70,7 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 	// query that value when lhs/v2-data-engine is set to true.  This restart
 	// logic is handled inside EnableV2DataEngine() and DisableV2DataEngine().
 	if nodecfg.Spec.LonghornConfig != nil && nodecfg.Spec.LonghornConfig.EnableV2DataEngine {
-		if err := config.EnableV2DataEngine(); err != nil {
+		if err := config.EnableV2DataEngine(uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"err": err.Error(),
 			}).Error("Failed to enable V2 Data Engine")
