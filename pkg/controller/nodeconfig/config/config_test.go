@@ -183,3 +183,37 @@ func TestExtraConfigPersistence(t *testing.T) {
 	_, err = os.Stat(settingsOEMPathBackupPath)
 	assert.False(t, os.IsNotExist(err))
 }
+
+func TestLonghornConfigPersistence(t *testing.T) {
+	tmpDir := t.TempDir()
+	oemPath = tmpDir + "/host/oem"
+	settingsOEMPath = tmpDir + "/host/oem/99_settings.yaml"
+	settingsOEMPathBackupPath = tmpDir + "/host/oem/99_settings.yaml.bak"
+	if os.MkdirAll(oemPath, 0777) != nil {
+		t.Errorf("Unable to create %s", oemPath)
+	}
+
+	// Write longhorn config for V2 data engine enabled
+	err := updateLonghornConfigPersistence()
+	assert.Nil(t, err)
+
+	// Should be able to load config
+	yipConfig, err := utils.LoadYipConfig(settingsOEMPath)
+	assert.Nil(t, err)
+
+	// Config should be valid
+	assert.Equal(t, "oem_settings", yipConfig.Name)
+	// ...one top level stage ("initramfs"):
+	assert.Equal(t, 1, len(yipConfig.Stages))
+	assert.Contains(t, yipConfig.Stages, yipStageInitramfs)
+	// ...which in turn has one stage inside ("Runtime SPDK Prerequisites"):
+	assert.Equal(t, 1, len(yipConfig.Stages[yipStageInitramfs]))
+	assert.Equal(t, "Runtime SPDK Prerequisites", yipConfig.Stages[yipStageInitramfs][0].Name)
+	// ...which has a systctl to allocate 1024 hugepages
+	assert.Equal(t, "1024", yipConfig.Stages[yipStageInitramfs][0].Sysctl["vm.nr_hugepages"])
+	// ...and three modprobe commands
+	assert.Equal(t, 3, len(yipConfig.Stages[yipStageInitramfs][0].Commands))
+	assert.Equal(t, "modprobe vfio_pci", yipConfig.Stages[yipStageInitramfs][0].Commands[0])
+	assert.Equal(t, "modprobe uio_pci_generic", yipConfig.Stages[yipStageInitramfs][0].Commands[1])
+	assert.Equal(t, "modprobe nvme_tcp", yipConfig.Stages[yipStageInitramfs][0].Commands[2])
+}
