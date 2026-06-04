@@ -1,8 +1,12 @@
 module github.com/harvester/node-manager
 
+<<<<<<< HEAD
 go 1.25
 
 toolchain go1.25.2
+=======
+go 1.26
+>>>>>>> 893054d (chore: bump golang 1.26)
 
 replace (
 	k8s.io/api => k8s.io/api v0.32.1
