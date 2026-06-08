@@ -5,3 +5,4 @@
 .idea
 .nocalhost
 .DS_Store
+/scripts/.version_env

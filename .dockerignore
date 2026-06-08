@@ -1,2 +1,10 @@
-./.dapper
-./.cache
+/.dapper
+/.cache
+*.swp
+.idea
+.nocalhost
+.DS_Store
+/dist
+.git
+
+# /bin is not ignored — package/Dockerfile* use COPY bin/... with the repo root as build context

@@ -1,10 +1,11 @@
 #!/bin/bash -e
 
-TOP_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" &> /dev/null && pwd )"
-source $TOP_DIR/../scripts/version
-source $TOP_DIR/helper.sh
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/" &> /dev/null && pwd )"
+REPO_DIR="$( cd "${SCRIPT_DIR}/.." &> /dev/null && pwd )"
+source "${REPO_DIR}/scripts/version"
+source "${SCRIPT_DIR}/helper.sh"
 
-pushd $TOP_DIR
+pushd "${SCRIPT_DIR}"
 
 cluster_nodes=$(yq -e e '.cluster_size' $VAGRANT_RANCHERD_DIR/settings.yaml)
 echo "cluster nodes: $cluster_nodes"
