@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	spdkStageName       = "Runtime SPDK Prerequisites"
-	hugepagesPath       = "/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
-	hugepagesToAllocate = 1024
+	spdkStageName = "Runtime SPDK Prerequisites"
+	hugepagesPath = "/sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages"
 )
 
 var (
@@ -72,24 +71,26 @@ func restartKubelet() error {
 	return nil
 }
 
-func EnableV2DataEngine() error {
-	origHugepages, err := getNrHugepages()
-	if err != nil {
-		return err
+func updateLonghornConfigPersistence(hugepagesToAllocate uint64) error {
+	stage := schema.Stage{
+		Name:     spdkStageName,
+		Commands: []string{},
 	}
 
+	for _, module := range modulesToLoad {
+		stage.Commands = append(stage.Commands, fmt.Sprintf("modprobe %s", module))
+	}
+
+	if hugepagesToAllocate > 0 {
+		stage.Sysctl = map[string]string{"vm.nr_hugepages": fmt.Sprintf("%d", hugepagesToAllocate)}
+	}
+
+	return UpdatePersistentOEMSettings(stage)
+}
+
+func EnableV2DataEngine(hugepagesToAllocate uint64) error {
 	// Write the persistent config first, so we know it's saved...
-	if err := UpdatePersistentOEMSettings(schema.Stage{
-		Name: spdkStageName,
-		Sysctl: map[string]string{
-			"vm.nr_hugepages": fmt.Sprintf("%d", hugepagesToAllocate),
-		},
-		Commands: []string{
-			"modprobe vfio_pci",
-			"modprobe uio_pci_generic",
-			"modprobe nvme_tcp",
-		},
-	}); err != nil {
+	if err := updateLonghornConfigPersistence(hugepagesToAllocate); err != nil {
 		return err
 	}
 
@@ -98,9 +99,18 @@ func EnableV2DataEngine() error {
 		return fmt.Errorf("unable to load kernel modules %v: %v", modulesToLoad, err)
 	}
 
+	origHugepages, err := getNrHugepages()
+	if err != nil {
+		return err
+	}
+
 	if origHugepages >= hugepagesToAllocate {
 		// We've already got enough hugepages, and don't want to unnecessarily
 		// restart the kubelet, so no further action required
+		// (this also handles the zero case, kinda - at least, if hugepages
+		// are disabled, we won't bother trying to allocate any, but if
+		// hugepages were previously enabled, and later disabled, they will
+		// remain allocated until next reboot).
 		return nil
 	}
 
