@@ -48,7 +48,7 @@ require (
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/harvester/webhook v0.1.5
-	github.com/kevinburke/ssh_config v1.2.0
+	github.com/kevinburke/ssh_config v1.6.0
 	github.com/melbahja/goph v1.4.0
 	github.com/prometheus/procfs v0.15.1
 	github.com/urfave/cli/v2 v2.3.0
