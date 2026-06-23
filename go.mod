@@ -138,4 +138,4 @@ require (
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
 
-replace github.com/rancher/wrangler => github.com/rancher/wrangler v1.1.1-0.20230818201331-3604a6be798d
+replace github.com/rancher/wrangler => github.com/rancher/wrangler v1.1.2
