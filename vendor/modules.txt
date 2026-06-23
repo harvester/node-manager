@@ -835,4 +835,4 @@ sigs.k8s.io/yaml/goyaml.v2
 # k8s.io/legacy-cloud-providers => k8s.io/legacy-cloud-providers v0.32.1
 # k8s.io/mount-utils => k8s.io/mount-utils v0.32.1
 # k8s.io/sample-apiserver => k8s.io/sample-apiserver v0.32.1
-# github.com/rancher/wrangler => github.com/rancher/wrangler v1.1.1-0.20230818201331-3604a6be798d
+# github.com/rancher/wrangler => github.com/rancher/wrangler v1.1.2
