@@ -46,7 +46,7 @@ require (
 )
 
 require (
-	github.com/fsnotify/fsnotify v1.9.0
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/harvester/webhook v0.1.5
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/melbahja/goph v1.4.0
