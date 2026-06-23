@@ -45,7 +45,7 @@ require (
 
 require (
 	github.com/fsnotify/fsnotify v1.7.0
-	github.com/harvester/webhook v0.1.4
+	github.com/harvester/webhook v0.1.5
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/melbahja/goph v1.4.0
 	github.com/prometheus/procfs v0.15.1
@@ -97,8 +97,7 @@ require (
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
-	github.com/rancher/dynamiclistener v0.3.5 // indirect
-	github.com/rancher/wrangler v1.1.1 // indirect
+	github.com/rancher/dynamiclistener v0.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/spf13/afero v1.9.5 // indirect
 	github.com/spf13/cast v1.5.1 // indirect
