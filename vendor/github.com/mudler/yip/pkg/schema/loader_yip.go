@@ -1,19 +1,19 @@
 package schema
 
 import (
-	"github.com/twpayne/go-vfs"
-	"gopkg.in/yaml.v2"
+	"github.com/twpayne/go-vfs/v5"
+	"gopkg.in/yaml.v3"
 )
 
 type yipYAML struct{}
 
 // LoadFromYaml loads a yip config from bytes
-func (yipYAML) Load(b []byte, fs vfs.FS) (*YipConfig, error) {
+func (yipYAML) Load(source string, b []byte, fs vfs.FS) (*YipConfig, error) {
 	var yamlConfig YipConfig
 	err := yaml.Unmarshal(b, &yamlConfig)
 	if err != nil {
 		return nil, err
 	}
-
+	yamlConfig.Source = source
 	return &yamlConfig, nil
 }

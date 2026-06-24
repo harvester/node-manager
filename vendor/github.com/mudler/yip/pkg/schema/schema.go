@@ -23,14 +23,13 @@ import (
 	"strings"
 
 	"github.com/google/shlex"
-
 	config "github.com/mudler/yip/pkg/schema/cloudinit"
 	"github.com/pkg/errors"
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/itchyny/gojq"
-	"github.com/twpayne/go-vfs"
-	"gopkg.in/yaml.v2"
+	"github.com/twpayne/go-vfs/v5"
+	"gopkg.in/yaml.v3"
 )
 
 type YipEntity struct {
@@ -63,8 +62,9 @@ type Directory struct {
 }
 
 type DataSource struct {
-	Providers []string `yaml:"providers,omitempty"`
-	Path      string   `yaml:"path,omitempty"`
+	Providers    []string `yaml:"providers,omitempty"`
+	Path         string   `yaml:"path,omitempty"`
+	UserdataName string   `yaml:"userdata_name,omitempty"`
 }
 
 type Git struct {
@@ -113,19 +113,27 @@ type Layout struct {
 }
 
 type Device struct {
-	Label string `yaml:"label,omitempty"`
-	Path  string `yaml:"path,omitempty"`
+	InitDisk bool   `yaml:"init_disk,omitempty"`
+	DiskName string `yaml:"disk_name,omitempty"`
+	Label    string `yaml:"label,omitempty"`
+	// Path is the block device to operate on (e.g. /dev/sda).
+	// It also accepts a "script://<command>" value: the command is executed and
+	// its stdout (trimmed) is used as the device path. This is useful when the
+	// target device name is not known ahead of time and must be determined at
+	// runtime (e.g. "script:///usr/local/bin/pick-disk.sh").
+	Path string `yaml:"path,omitempty"`
 }
 
 type Expand struct {
-	Size uint `yaml:"size,omitempty"`
+	Size uint64 `yaml:"size,omitempty"`
 }
 
 type Partition struct {
 	FSLabel    string `yaml:"fsLabel,omitempty"`
-	Size       uint   `yaml:"size,omitempty"`
+	Size       uint64 `yaml:"size,omitempty"`
 	PLabel     string `yaml:"pLabel,omitempty"`
 	FileSystem string `yaml:"filesystem,omitempty"`
+	Bootable   bool   `yaml:"bootable,omitempty"`
 }
 
 type Dependency struct {
@@ -152,6 +160,9 @@ type Stage struct {
 	Systemctl       Systemctl           `yaml:"systemctl,omitempty"`
 	Environment     map[string]string   `yaml:"environment,omitempty"`
 	EnvironmentFile string              `yaml:"environment_file,omitempty"`
+	PackagePins     map[string]string   `yaml:"package_pins,omitempty"`
+	Packages        Packages            `yaml:"packages,omitempty"`
+	UnpackImages    []UnpackImageConf   `yaml:"unpack_images,omitempty"`
 
 	After []Dependency `yaml:"after,omitempty"`
 
@@ -162,13 +173,45 @@ type Stage struct {
 
 	TimeSyncd map[string]string `yaml:"timesyncd,omitempty"`
 	Git       Git               `yaml:"git,omitempty"`
+
+	OnlyIfOs             string                   `yaml:"only_os,omitempty"`
+	OnlyIfOsVersion      string                   `yaml:"only_os_version,omitempty"`
+	OnlyIfArch           string                   `yaml:"only_arch,omitempty"`
+	OnlyIfServiceManager string                   `yaml:"only_service_manager,omitempty"`
+	IfFiles              map[IfCheckType][]string `yaml:"if_files,omitempty"`
+}
+
+type IfCheckType string
+
+const IfCheckAny IfCheckType = "any"
+const IfCheckAll IfCheckType = "all"
+const IfCheckNone IfCheckType = "none"
+
+type UnpackImageConf struct {
+	Source   string `yaml:"source,omitempty"`
+	Target   string `yaml:"target,omitempty"`
+	Platform string `yaml:"platform,omitempty"`
+}
+
+type SystemctlOverride struct {
+	Service string `yaml:"service,omitempty"`
+	Content string `yaml:"content,omitempty"`
+	Name    string `yaml:"name,omitempty"`
 }
 
 type Systemctl struct {
-	Enable  []string `yaml:"enable,omitempty"`
-	Disable []string `yaml:"disable,omitempty"`
-	Start   []string `yaml:"start,omitempty"`
-	Mask    []string `yaml:"mask,omitempty"`
+	Enable    []string            `yaml:"enable,omitempty"`
+	Disable   []string            `yaml:"disable,omitempty"`
+	Start     []string            `yaml:"start,omitempty"`
+	Mask      []string            `yaml:"mask,omitempty"`
+	Overrides []SystemctlOverride `yaml:"overrides,omitempty"`
+}
+
+type Packages struct {
+	Install []string `yaml:"install,omitempty"`
+	Remove  []string `yaml:"remove,omitempty"`
+	Refresh bool     `yaml:"refresh,omitempty"`
+	Upgrade bool     `yaml:"upgrade,omitempty"`
 }
 
 type DNS struct {
@@ -179,15 +222,31 @@ type DNS struct {
 }
 
 type YipConfig struct {
+	Source string             `yaml:"-"`
 	Name   string             `yaml:"name,omitempty"`
 	Stages map[string][]Stage `yaml:"stages,omitempty"`
+}
+
+// ToString returns the yaml representation of the YipConfig
+// Setting the indent to 2 spaces fixes an underlying bug in the yaml library
+// https://github.com/go-yaml/yaml/issues/1071
+// Wont be fixed until v4 for sure: https://github.com/yaml/go-yaml
+func (y *YipConfig) ToString() string {
+	buf := new(bytes.Buffer)
+	enc := yaml.NewEncoder(buf)
+	enc.SetIndent(2)
+	err := enc.Encode(y)
+	if err != nil {
+		return ""
+	}
+	return buf.String()
 }
 
 type Loader func(s string, fs vfs.FS, m Modifier) ([]byte, error)
 type Modifier func(s []byte) ([]byte, error)
 
 type yipLoader interface {
-	Load([]byte, vfs.FS) (*YipConfig, error)
+	Load(string, []byte, vfs.FS) (*YipConfig, error)
 }
 
 func Load(s string, fs vfs.FS, l Loader, m Modifier) (*YipConfig, error) {
@@ -206,7 +265,7 @@ func Load(s string, fs vfs.FS, l Loader, m Modifier) (*YipConfig, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid file type")
 	}
-	return loader.Load(data, fs)
+	return loader.Load(s, data, fs)
 }
 
 func detect(b []byte) (yipLoader, error) {
@@ -229,12 +288,12 @@ func FromFile(s string, fs vfs.FS, m Modifier) ([]byte, error) {
 }
 
 // FromUrl loads a yip config from a url
-func FromUrl(s string, fs vfs.FS, m Modifier) ([]byte, error) {
+func FromUrl(s string, _ vfs.FS, m Modifier) ([]byte, error) {
 	resp, err := http.Get(s)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	buf := bytes.NewBuffer([]byte{})
 	_, err = io.Copy(buf, resp.Body)
