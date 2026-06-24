@@ -53,7 +53,7 @@ require (
 	github.com/prometheus/procfs v0.15.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
-	golang.org/x/sys v0.31.0
+	golang.org/x/sys v0.46.0
 )
 
 require (
