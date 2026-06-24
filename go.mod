@@ -50,10 +50,10 @@ require (
 	github.com/harvester/webhook v0.1.5
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/melbahja/goph v1.4.0
-	github.com/prometheus/procfs v0.15.1
+	github.com/prometheus/procfs v0.20.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
-	golang.org/x/sys v0.31.0
+	golang.org/x/sys v0.41.0
 )
 
 require (
@@ -115,7 +115,7 @@ require (
 	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
 	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
