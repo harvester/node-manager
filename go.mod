@@ -50,7 +50,7 @@ require (
 	github.com/melbahja/goph v1.4.0
 	github.com/prometheus/procfs v0.15.1
 	github.com/urfave/cli/v2 v2.3.0
-	golang.org/x/sys v0.31.0
+	golang.org/x/sys v0.44.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
