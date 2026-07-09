@@ -9,4 +9,5 @@ jobs:
     with:
       release-tag-name: pull-${{ github.event.number }}
       push: false
+      skip-integration-tests: ${{ github.actor == 'renovate[bot]' }}
     secrets: inherit
