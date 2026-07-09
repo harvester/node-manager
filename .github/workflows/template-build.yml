@@ -14,6 +14,10 @@ on:
         required: false
         type: boolean
         default: false
+      skip-integration-tests:
+        required: false
+        type: boolean
+        default: false
 env:
   PLATFORMS: linux/amd64,linux/arm64
   LIBVIRT_DEFAULT_URI: "qemu:///system"
@@ -50,6 +54,7 @@ jobs:
           BUILD_FOR_CI=true make
 
       - name: "Setup vagrant rancherd"
+        if: ${{ inputs.skip-integration-tests == false }}
         run: |
           rm -rf nm-vagrant-rancherd
           git clone https://github.com/harvester/vagrant-rancherd nm-vagrant-rancherd
@@ -59,19 +64,22 @@ jobs:
           ./new_cluster.sh
 
       - name: "Deploy latest node manager"
+        if: ${{ inputs.skip-integration-tests == false }}
         run: |
           ./ci/deploy_nm.sh $VAGRANT_RANCHERD_HOME
 
       - name: "Upgrade node manager to dev version"
+        if: ${{ inputs.skip-integration-tests == false }}
         run: |
           ./ci/upgrade_nm.sh $VAGRANT_RANCHERD_HOME
 
       - name: "Run integration tests"
+        if: ${{ inputs.skip-integration-tests == false }}
         run: |
           VAGRANT_RANCHERD_HOME=$VAGRANT_RANCHERD_HOME go test -v ./tests/... -count=1
 
       - name: "Tear Down / Cleanup"
-        if: always()
+        if: ${{ always() && inputs.skip-integration-tests == false }}
         run: |
           cd $VAGRANT_RANCHERD_HOME
           vagrant destroy -f --parallel
