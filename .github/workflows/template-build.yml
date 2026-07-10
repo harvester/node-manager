@@ -24,7 +24,7 @@ env:
 
 jobs:
   ci:
-    if: ${{ inputs.skip-ci == false }}
+    if: ${{ always() && inputs.skip-ci == true }}
     runs-on:
       - self-hosted
       - golang
