@@ -117,35 +117,101 @@ jobs:
       - name: Package webhook
         run: make package-webhook
 
-      - name: Read Secrets
-        uses: rancher-eio/read-vault-secrets@d266f55186f80a893839f6e15662e67388e443e6 # v3
+      - name: Resolve registries
+        id: resolve
+        uses: harvester/harvester-actions/actions/resolve-registries@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
         with:
-          secrets: |
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials username | DOCKER_USERNAME ;
-            secret/data/github/repo/${{ github.repository }}/dockerhub/rancher/credentials password | DOCKER_PASSWORD
+          release-tag-name: ${{ inputs.release-tag-name }}
+          is-release: ${{ github.event_name == 'release' && github.event.action == 'published' }}
+
+      - name: Set image tag
+        run: echo "IMAGE_TAG=${RELEASE_TAG_NAME#prime-}" >> "$GITHUB_ENV"
+        env:
+          RELEASE_TAG_NAME: ${{ inputs.release-tag-name }}
 
       - name: Login to Docker Hub
-        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
-        with:
-          username: ${{ env.DOCKER_USERNAME }}
-          password: ${{ env.DOCKER_PASSWORD }}
+        id: login-docker
+        if: ${{ steps.resolve.outputs.use-docker-io == 'true' }}
+        uses: harvester/harvester-actions/actions/login-docker-hub@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
 
-      - name: Docker Build node-manager
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      - name: Publish public node-manager image
+        if: ${{ steps.resolve.outputs.use-docker-io == 'true' }}
+        uses: harvester/harvester-actions/actions/publish-public-image@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
         with:
-          provenance: false
           context: .
+          dockerfile: package/Dockerfile
+          image: harvester-node-manager
+          tag: ${{ env.IMAGE_TAG }}
           platforms: ${{ env.PLATFORMS }}
-          file: package/Dockerfile
-          push: ${{ inputs.push }}
-          tags: rancher/harvester-node-manager:${{ inputs.release-tag-name }}
+          registry: ${{ steps.login-docker.outputs.registry }}
+          repository: ${{ steps.login-docker.outputs.repository }}
 
-      - name: Docker Build node-manager-webhook
-        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
+      - name: Publish public node-manager-webhook image
+        if: ${{ steps.resolve.outputs.use-docker-io == 'true' }}
+        uses: harvester/harvester-actions/actions/publish-public-image@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
         with:
-          provenance: false
           context: .
+          dockerfile: package/Dockerfile.webhook
+          image: harvester-node-manager-webhook
+          tag: ${{ env.IMAGE_TAG }}
           platforms: ${{ env.PLATFORMS }}
-          file: package/Dockerfile.webhook
-          push: ${{ inputs.push }}
-          tags: rancher/harvester-node-manager-webhook:${{ inputs.release-tag-name }}
+          registry: ${{ steps.login-docker.outputs.registry }}
+          repository: ${{ steps.login-docker.outputs.repository }}
+
+      - name: Login to Staging Registry
+        id: login-staging
+        if: ${{ steps.resolve.outputs.use-staging == 'true' }}
+        uses: harvester/harvester-actions/actions/login-staging-registry@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
+
+      - name: Publish staging node-manager image
+        if: ${{ steps.resolve.outputs.use-staging == 'true' }}
+        uses: harvester/harvester-actions/actions/publish-prime-image@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
+        with:
+          context: .
+          dockerfile: package/Dockerfile
+          image: harvester-node-manager
+          tag: ${{ env.IMAGE_TAG }}
+          platforms: ${{ env.PLATFORMS }}
+          registry: ${{ steps.login-staging.outputs.registry }}
+          repository: ${{ steps.login-staging.outputs.repository }}
+
+      - name: Publish staging node-manager-webhook image
+        if: ${{ steps.resolve.outputs.use-staging == 'true' }}
+        uses: harvester/harvester-actions/actions/publish-prime-image@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
+        with:
+          context: .
+          dockerfile: package/Dockerfile.webhook
+          image: harvester-node-manager-webhook
+          tag: ${{ env.IMAGE_TAG }}
+          platforms: ${{ env.PLATFORMS }}
+          registry: ${{ steps.login-staging.outputs.registry }}
+          repository: ${{ steps.login-staging.outputs.repository }}
+
+      - name: Login to Prime Registry
+        id: login-prime
+        if: ${{ steps.resolve.outputs.use-prime == 'true' }}
+        uses: harvester/harvester-actions/actions/login-prime-registry@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
+
+      - name: Publish prime node-manager image
+        if: ${{ steps.resolve.outputs.use-prime == 'true' }}
+        uses: harvester/harvester-actions/actions/publish-prime-image@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
+        with:
+          context: .
+          dockerfile: package/Dockerfile
+          image: harvester-node-manager
+          tag: ${{ env.IMAGE_TAG }}
+          platforms: ${{ env.PLATFORMS }}
+          registry: ${{ steps.login-prime.outputs.registry }}
+          repository: ${{ steps.login-prime.outputs.repository }}
+
+      - name: Publish prime node-manager-webhook image
+        if: ${{ steps.resolve.outputs.use-prime == 'true' }}
+        uses: harvester/harvester-actions/actions/publish-prime-image@284eb4af3a007f2dbaa0717ed19413f2980c5365 # main
+        with:
+          context: .
+          dockerfile: package/Dockerfile.webhook
+          image: harvester-node-manager-webhook
+          tag: ${{ env.IMAGE_TAG }}
+          platforms: ${{ env.PLATFORMS }}
+          registry: ${{ steps.login-prime.outputs.registry }}
+          repository: ${{ steps.login-prime.outputs.repository }}
