@@ -35,13 +35,21 @@ else
 fi
 
 # check image
-pod_name=$(kubectl get pods -n harvester-system |grep Running |grep ^harvester-node-manager|head -n1 |awk '{print $1}')
-container_img=$(kubectl get pods ${pod_name} -n harvester-system -o yaml |yq -e .spec.containers[0].image |tr ":" \n)
-yaml_img=$(yq -e .image.repository nm-override.yaml)
-if grep -q ${yaml_img} <<< ${container_img}; then
-  echo "Image is equal: ${yaml_img}"
+node_manager_container_img=$(kubectl get ds harvester-node-manager -n harvester-system -o yaml | yq -e '.spec.template.spec.containers[] | select(.name == "node-manager") | .image')
+node_manager_yaml_img=$(yq -e '.image.repository + ":" + .image.tag' nm-override.yaml)
+if [[ "${node_manager_container_img}" == "${node_manager_yaml_img}" ]]; then
+  echo "node-manager image is equal: ${node_manager_yaml_img}"
 else
-  echo "Image is non-equal, container: ${container_img}, yaml file: ${yaml_img}"
+  echo "node-manager image is non-equal, container: ${node_manager_container_img}, yaml file: ${node_manager_yaml_img}"
+  exit 1
+fi
+
+webhook_container_img=$(kubectl get deployment harvester-node-manager-webhook -n harvester-system -o yaml | yq -e '.spec.template.spec.containers[] | select(.name == "harvester-node-manager-webhook") | .image')
+webhook_yaml_img=$(yq -e '.webhook.image.repository + ":" + .webhook.image.tag' nm-override.yaml)
+if [[ "${webhook_container_img}" == "${webhook_yaml_img}" ]]; then
+  echo "webhook image is equal: ${webhook_yaml_img}"
+else
+  echo "webhook image is non-equal, container: ${webhook_container_img}, yaml file: ${webhook_yaml_img}"
   exit 1
 fi
 echo "harvester-node-manager upgrade successfully!"
