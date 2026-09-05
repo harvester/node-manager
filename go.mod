@@ -1,6 +1,6 @@
 module github.com/harvester/node-manager
 
-go 1.26
+go 1.26.0
 
 replace (
 	k8s.io/api => k8s.io/api v0.32.1
@@ -108,7 +108,7 @@ require (
 	github.com/tklauser/numcpus v0.4.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
 	golang.org/x/mod v0.40.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
