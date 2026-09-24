@@ -128,7 +128,7 @@ func (handler *NTPHandler) updateNTPConfig() error {
 		return fmt.Errorf("generate NTP Config Raw Buffer failed. err: %v", err)
 	}
 
-	tempNTPConfigName, err := files.GenerateTempFileWithDir([]byte(raw), "timesyncd.conf", utils.SystemdConfigPath)
+	tempNTPConfigName, err := files.GenerateTempFileFullOptions([]byte(raw), "timesyncd.conf", utils.SystemdConfigPath, 0644)
 	if err != nil {
 		return fmt.Errorf("generate temp NTP config failed. err: %v", err)
 	}
