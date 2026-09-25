@@ -27,7 +27,7 @@ replace (
 require (
 	github.com/ehazlett/simplelog v0.0.0-20200226020431-d374894e92a4
 	github.com/godbus/dbus/v5 v5.2.2
-	github.com/harvester/go-common v0.0.0-20240903083523-9576346cda75
+	github.com/harvester/go-common v0.0.0-20260925053534-409079ed0e8a
 	github.com/mudler/yip v1.1.0
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_golang v1.22.0
@@ -50,7 +50,7 @@ require (
 	github.com/harvester/webhook v0.1.5
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/melbahja/goph v1.4.0
-	github.com/prometheus/procfs v0.15.1
+	github.com/prometheus/procfs v0.17.0
 	github.com/urfave/cli/v2 v2.3.0
 	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/sys v0.47.0
@@ -59,7 +59,7 @@ require (
 require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.6.0 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.3 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
