@@ -4,8 +4,8 @@ github.com/beorn7/perks/quantile
 # github.com/cespare/xxhash/v2 v2.3.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/coreos/go-systemd/v22 v22.5.0
-## explicit; go 1.12
+# github.com/coreos/go-systemd/v22 v22.6.0
+## explicit; go 1.23
 github.com/coreos/go-systemd/v22/dbus
 # github.com/cpuguy83/go-md2man/v2 v2.0.3
 ## explicit; go 1.11
@@ -77,8 +77,8 @@ github.com/google/uuid
 # github.com/gorilla/mux v1.8.0
 ## explicit; go 1.12
 github.com/gorilla/mux
-# github.com/harvester/go-common v0.0.0-20240903083523-9576346cda75
-## explicit; go 1.22
+# github.com/harvester/go-common v0.0.0-20260925053534-409079ed0e8a
+## explicit; go 1.25.7
 github.com/harvester/go-common/common
 github.com/harvester/go-common/files
 github.com/harvester/go-common/sys
@@ -191,8 +191,8 @@ github.com/prometheus/client_model/go
 ## explicit; go 1.21
 github.com/prometheus/common/expfmt
 github.com/prometheus/common/model
-# github.com/prometheus/procfs v0.15.1
-## explicit; go 1.20
+# github.com/prometheus/procfs v0.17.0
+## explicit; go 1.23.0
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util

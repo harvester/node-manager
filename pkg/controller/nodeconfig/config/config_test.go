@@ -107,8 +107,11 @@ func TestExtraConfigPersistence(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Settings file should exist
-	_, err = os.Stat(settingsOEMPath)
+	settingsStat, err := os.Stat(settingsOEMPath)
 	assert.Nil(t, err)
+
+	// Settings file should be RW by owner only
+	assert.Equal(t, os.FileMode(0600), settingsStat.Mode())
 
 	// Backup file should not exist
 	_, err = os.Stat(settingsOEMPathBackupPath)
@@ -122,8 +125,11 @@ func TestExtraConfigPersistence(t *testing.T) {
 	assert.Nil(t, err)
 
 	// Backup file should exist
-	_, err = os.Stat(settingsOEMPathBackupPath)
+	backupStat, err := os.Stat(settingsOEMPathBackupPath)
 	assert.False(t, os.IsNotExist(err))
+
+	// Backup file should be RW by owner only
+	assert.Equal(t, os.FileMode(0600), backupStat.Mode())
 
 	// Should be able to load config
 	yipConfig, err := utils.LoadYipConfig(settingsOEMPath)
