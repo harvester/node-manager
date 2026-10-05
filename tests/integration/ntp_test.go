@@ -110,12 +110,6 @@ func (s *NTPSuite) BeforeTest(_, _ string) {
 
 // restore default NTPServers
 func (s *NTPSuite) AfterTest(_, _ string) {
-	defer func() {
-		if s.sshClient != nil {
-			s.sshClient.Close() //nolint:errcheck
-		}
-	}()
-
 	nodeConfigs := s.clientSet.NodeV1beta1().NodeConfigs("harvester-system")
 
 	nodeConfig, err := nodeConfigs.Get(context.TODO(), s.targetNodeName, k8smetav1.GetOptions{})
@@ -131,6 +125,12 @@ func (s *NTPSuite) AfterTest(_, _ string) {
 		out, _ := s.sshClient.Run("timedatectl show-timesync")
 		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", defaultNTPServers))
 	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", defaultNTPServers))
+}
+
+func (s *NTPSuite) TearDownSuite() {
+	if s.sshClient != nil {
+		s.sshClient.Close() //nolint:errcheck
+	}
 }
 
 func TestNTPServerConfig(t *testing.T) {
