@@ -27,6 +27,10 @@ type NodeConfigSpec struct {
 }
 
 type NTPConfig struct {
+	// NTPServers is a space-separated list of NTP server hostnames or IP
+	// addresses (IPv4 and/or IPv6), e.g. "0.pool.ntp.org 192.0.2.1 fd00::1".
+	// Order carries no meaning here (unlike dual-stack CIDR fields elsewhere,
+	// each entry is an independent server), so no family ordering is enforced.
 	NTPServers string `json:"ntpServers"`
 }
 

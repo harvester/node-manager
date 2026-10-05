@@ -44,6 +44,9 @@ spec:
               ntpConfigs:
                 properties:
                   ntpServers:
+                    description: NTPServers is a space-separated list of NTP server
+                      hostnames or IP addresses (IPv4 and/or IPv6), e.g. "0.pool.ntp.org
+                      fd00::1 192.0.2.1"
                     type: string
                 required:
                 - ntpServers

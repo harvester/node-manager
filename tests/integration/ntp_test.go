@@ -157,3 +157,29 @@ func (s *NTPSuite) TestNTP() {
 		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", googleNTPServers))
 	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", googleNTPServers))
 }
+
+// TestNTPDualStack locks in that a space-separated NTPServers value mixing
+// hostnames with IPv4 and IPv6 literals (dual-stack) is passed through
+// correctly. The NodeConfig controller dedupes and sorts entries before
+// writing them out, so the string on the node is expected in sorted order.
+func (s *NTPSuite) TestNTPDualStack() {
+	nodeConfigs := s.clientSet.NodeV1beta1().NodeConfigs("harvester-system")
+
+	dualStackNTPServers := "0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1"
+	expectedNTPServers := "0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1"
+
+	nodeConfig, err := nodeConfigs.Get(context.TODO(), s.targetNodeName, k8smetav1.GetOptions{})
+	require.NoError(s.T(), err, "Failed to get NodeConfig")
+	require.NotNil(s.T(), nodeConfig, "NodeConfig should not be nil")
+
+	updateNodeConfig := nodeConfig.DeepCopy()
+	updateNodeConfig.Spec.NTPConfig = &nodeconfigv1.NTPConfig{NTPServers: dualStackNTPServers}
+
+	_, err = nodeConfigs.Update(context.TODO(), updateNodeConfig, k8smetav1.UpdateOptions{})
+	require.NoError(s.T(), err, "Failed to update NodeConfig")
+
+	require.Eventually(s.T(), func() bool {
+		out, _ := s.sshClient.Run("timedatectl show-timesync")
+		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", expectedNTPServers))
+	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", expectedNTPServers))
+}

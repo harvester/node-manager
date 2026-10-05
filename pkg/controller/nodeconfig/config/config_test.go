@@ -70,10 +70,10 @@ func TestNTPConfigPersistence(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, yipConfig, backupConfig)
 
-	// New config should have new NTP servers
+	// New config should have new NTP servers, deduped and sorted by reGenerateNTPConfig
 	newConfig, err := utils.LoadYipConfig(settingsOEMPath)
 	assert.Nil(t, err)
-	assert.Equal(t, map[string]string{"NTP": newNtpConfig.NTPServers}, newConfig.Stages[yipStageInitramfs][0].TimeSyncd)
+	assert.Equal(t, map[string]string{"NTP": ntpConfigHandler.NTPConfig.NTPServers}, newConfig.Stages[yipStageInitramfs][0].TimeSyncd)
 
 	// Remove the NTP settings
 	err = RemovePersistentNTPConfig()

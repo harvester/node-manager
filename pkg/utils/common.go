@@ -2,6 +2,9 @@ package utils
 
 import (
 	"fmt"
+	"slices"
+	"sort"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -40,4 +43,28 @@ func GetToMonitorServices() []string {
 
 func DbusPropertiesGet() string {
 	return DbusPropertiesIface + ".Get"
+}
+
+// NormalizeNTPServers splits a space-separated NTPServers value (hostnames
+// and/or IPv4/IPv6 literals), dedupes and sorts the entries, then re-joins
+// them with a single space. Applying this on both sides of a comparison
+// makes the comparison order-independent, so the same set of servers
+// reported/configured in a different order isn't treated as drift.
+func NormalizeNTPServers(servers string) string {
+	if servers == "" {
+		return ""
+	}
+
+	fields := strings.Split(servers, " ")
+	deduped := make([]string, 0, len(fields))
+	for _, field := range fields {
+		if field == "" {
+			continue
+		}
+		if !slices.Contains(deduped, field) {
+			deduped = append(deduped, field)
+		}
+	}
+	sort.Strings(deduped)
+	return strings.Join(deduped, " ")
 }

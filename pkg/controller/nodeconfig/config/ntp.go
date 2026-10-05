@@ -8,8 +8,6 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"slices"
-	"strings"
 	"sync"
 
 	"github.com/harvester/go-common/files"
@@ -67,7 +65,7 @@ func (handler *NTPHandler) DoNTPUpdate(forceUpdate bool) (bool, error) {
 			logrus.Warnf("Unmarshal applied config from annotation failed, assume that is empty err: %v", err)
 		}
 
-		if content.NTPServers == handler.NTPConfig.NTPServers {
+		if utils.NormalizeNTPServers(content.NTPServers) == utils.NormalizeNTPServers(handler.NTPConfig.NTPServers) {
 			return false, nil
 		}
 	}
@@ -363,16 +361,9 @@ func reGenerateNTPConfig(ntpconfigs *nodeconfigv1.NTPConfig) *nodeconfigv1.NTPCo
 		return ntpconfigs
 	}
 
-	// fileter the duplicated NTP servers
-	currentNTPServers := strings.Split(ntpconfigs.NTPServers, " ")
-	parsedNTPServers := make([]string, 0)
-	for _, ntpServer := range currentNTPServers {
-		if !slices.Contains(parsedNTPServers, ntpServer) {
-			parsedNTPServers = append(parsedNTPServers, ntpServer)
-		}
-	}
+	// dedupe and sort the NTP servers so semantically identical lists
+	// (e.g. the same servers reported in a different order) compare equal
 	return &nodeconfigv1.NTPConfig{
-		NTPServers: strings.Join(parsedNTPServers, " "),
+		NTPServers: utils.NormalizeNTPServers(ntpconfigs.NTPServers),
 	}
-
 }

@@ -105,7 +105,7 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 			logrus.Errorf("Update Node NTP annotation fail. err: %v", err)
 			return nil, err
 		}
-		annoValue := generateAnnotationValue(nodecfg.Spec.NTPConfig.NTPServers)
+		annoValue := generateAnnotationValue(ntpConfigHandler.NTPConfig.NTPServers)
 		bytes, err := json.Marshal(annoValue)
 		if err != nil {
 			logrus.Errorf("Marshal annotation value fail, err: %v", err)

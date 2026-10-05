@@ -55,7 +55,7 @@ func (monitor *ConfigFileMonitor) handleNTPConfigChange() {
 	currentNTPServers := getNTPServersOnNode()
 	logrus.Debugf("Current NTP Servers: %s, Config NTP Servers %s", currentNTPServers, wantedNTPServers)
 
-	if wantedNTPServers != "" && wantedNTPServers != currentNTPServers {
+	if wantedNTPServers != "" && utils.NormalizeNTPServers(wantedNTPServers) != utils.NormalizeNTPServers(currentNTPServers) {
 		logrus.Infof("Enqueue to make controller to update NTP Servers")
 		monitor.NodeConfigCtl.Enqueue(nodeconfig.Namespace, nodeconfig.Name)
 	}
