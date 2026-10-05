@@ -30,6 +30,13 @@ type NTPSuite struct {
 
 const defaultNTPServers = "0.opensuse.pool.ntp.org 1.opensuse.pool.ntp.org 2.opensuse.pool.ntp.org 3.opensuse.pool.ntp.org"
 
+// restartSettleDelay is paced after every NTPServers change that triggers a
+// systemd-timesyncd restart. BeforeTest/body/AfterTest can each cause a
+// restart, and systemd-timesyncd's default unit rate-limit (5 starts per
+// 10s) gets tripped by back-to-back subtests, which then wedges the service
+// in a "start-limit-hit" failed state for the rest of the run.
+const restartSettleDelay = 3 * time.Second
+
 func (s *NTPSuite) SetupSuite() {
 	vagrantRancherdHome := os.Getenv("VAGRANT_RANCHERD_HOME")
 	require.NotEmpty(s.T(), vagrantRancherdHome, "VAGRANT_RANCHERD_HOME should not be empty")
@@ -105,7 +112,8 @@ func (s *NTPSuite) BeforeTest(_, _ string) {
 	require.Eventually(s.T(), func() bool {
 		out, _ := s.sshClient.Run("timedatectl show-timesync")
 		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", defaultNTPServers))
-	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", defaultNTPServers))
+	}, 20*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", defaultNTPServers))
+	time.Sleep(restartSettleDelay)
 }
 
 // restore default NTPServers
@@ -124,7 +132,8 @@ func (s *NTPSuite) AfterTest(_, _ string) {
 	require.Eventually(s.T(), func() bool {
 		out, _ := s.sshClient.Run("timedatectl show-timesync")
 		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", defaultNTPServers))
-	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", defaultNTPServers))
+	}, 20*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", defaultNTPServers))
+	time.Sleep(restartSettleDelay)
 }
 
 func (s *NTPSuite) TearDownSuite() {
@@ -155,7 +164,8 @@ func (s *NTPSuite) TestNTP() {
 	require.Eventually(s.T(), func() bool {
 		out, _ := s.sshClient.Run("timedatectl show-timesync")
 		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", googleNTPServers))
-	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", googleNTPServers))
+	}, 20*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", googleNTPServers))
+	time.Sleep(restartSettleDelay)
 }
 
 // TestNTPDualStack locks in that a space-separated NTPServers value mixing
@@ -181,5 +191,6 @@ func (s *NTPSuite) TestNTPDualStack() {
 	require.Eventually(s.T(), func() bool {
 		out, _ := s.sshClient.Run("timedatectl show-timesync")
 		return strings.Contains(string(out), fmt.Sprintf("SystemNTPServers=%s", expectedNTPServers))
-	}, 10*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", expectedNTPServers))
+	}, 20*time.Second, 1*time.Second, fmt.Sprintf("NTPServers should be %s", expectedNTPServers))
+	time.Sleep(restartSettleDelay)
 }
