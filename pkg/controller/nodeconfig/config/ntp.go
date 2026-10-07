@@ -361,8 +361,7 @@ func reGenerateNTPConfig(ntpconfigs *nodeconfigv1.NTPConfig) *nodeconfigv1.NTPCo
 		return ntpconfigs
 	}
 
-	// dedupe and sort the NTP servers so semantically identical lists
-	// (e.g. the same servers reported in a different order) compare equal
+	// dedupe the NTP servers so the list is sanitized
 	return &nodeconfigv1.NTPConfig{
 		NTPServers: utils.NormalizeNTPServers(ntpconfigs.NTPServers),
 	}
