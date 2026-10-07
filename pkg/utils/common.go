@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -46,10 +45,10 @@ func DbusPropertiesGet() string {
 }
 
 // NormalizeNTPServers splits a space-separated NTPServers value (hostnames
-// and/or IPv4/IPv6 literals), dedupes and sorts the entries, then re-joins
-// them with a single space. Applying this on both sides of a comparison
-// makes the comparison order-independent, so the same set of servers
-// reported/configured in a different order isn't treated as drift.
+// and/or IPv4/IPv6 literals) and drops duplicate entries, preserving the
+// order of first occurrence. systemd-timesyncd's NTP= contacts entries in
+// the given order until one responds, so entries must never be reordered,
+// only deduplicated.
 func NormalizeNTPServers(servers string) string {
 	if servers == "" {
 		return ""
@@ -65,6 +64,5 @@ func NormalizeNTPServers(servers string) string {
 			deduped = append(deduped, field)
 		}
 	}
-	sort.Strings(deduped)
 	return strings.Join(deduped, " ")
 }

@@ -20,14 +20,14 @@ func TestReGenerateNTPConfig(t *testing.T) {
 			expected: "",
 		},
 		{
-			name:     "dedupes duplicate servers",
+			name:     "dedupes duplicate servers, keeping first occurrence position",
 			input:    "0.suse.pool.ntp.org 0.suse.pool.ntp.org 1.suse.pool.ntp.org",
 			expected: "0.suse.pool.ntp.org 1.suse.pool.ntp.org",
 		},
 		{
-			name:     "sorts a dual-stack IPv4/IPv6/hostname mix",
+			name:     "preserves configured priority order for a dual-stack IPv4/IPv6/hostname mix",
 			input:    "fd00::1 0.suse.pool.ntp.org 192.0.2.1 2001:db8::123",
-			expected: "0.suse.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1",
+			expected: "fd00::1 0.suse.pool.ntp.org 192.0.2.1 2001:db8::123",
 		},
 	}
 
@@ -39,9 +39,12 @@ func TestReGenerateNTPConfig(t *testing.T) {
 	}
 }
 
-func TestReGenerateNTPConfigIsOrderIndependent(t *testing.T) {
+func TestReGenerateNTPConfigPreservesPriorityOrder(t *testing.T) {
 	a := reGenerateNTPConfig(&v1beta1.NTPConfig{NTPServers: "fd00::1 192.0.2.1 0.suse.pool.ntp.org"})
 	b := reGenerateNTPConfig(&v1beta1.NTPConfig{NTPServers: "0.suse.pool.ntp.org fd00::1 192.0.2.1"})
 
-	assert.Equal(t, a.NTPServers, b.NTPServers)
+	// systemd-timesyncd contacts NTP= entries in the given order until one
+	// responds, so reordering must be treated as a real configuration
+	// change, not a no-op.
+	assert.NotEqual(t, a.NTPServers, b.NTPServers)
 }

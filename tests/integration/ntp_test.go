@@ -170,14 +170,15 @@ func (s *NTPSuite) TestNTP() {
 
 // TestNTPDualStack locks in that a space-separated NTPServers value mixing
 // hostnames with IPv4 and IPv6 literals (dual-stack) is passed through
-// correctly. The input is deliberately unsorted and contains a duplicate
-// entry, so the test also exercises the controller's dedupe+sort behavior,
-// not just that dual-stack values are accepted.
+// correctly. The input contains a duplicate entry, so the test also
+// exercises the controller's dedupe behavior. systemd-timesyncd's NTP=
+// contacts entries in the given order, so the configured order must be
+// preserved, with only the duplicate dropped.
 func (s *NTPSuite) TestNTPDualStack() {
 	nodeConfigs := s.clientSet.NodeV1beta1().NodeConfigs("harvester-system")
 
 	dualStackNTPServers := "fd00::1 192.0.2.1 0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123"
-	expectedNTPServers := "0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1"
+	expectedNTPServers := "fd00::1 192.0.2.1 0.opensuse.pool.ntp.org 2001:db8::123"
 
 	nodeConfig, err := nodeConfigs.Get(context.TODO(), s.targetNodeName, k8smetav1.GetOptions{})
 	require.NoError(s.T(), err, "Failed to get NodeConfig")

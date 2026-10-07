@@ -23,24 +23,24 @@ func TestNormalizeNTPServers(t *testing.T) {
 			expected: "192.0.2.1",
 		},
 		{
-			name:     "hostnames already sorted",
-			input:    "0.pool.ntp.org 1.pool.ntp.org",
-			expected: "0.pool.ntp.org 1.pool.ntp.org",
+			name:     "hostnames preserve order",
+			input:    "1.pool.ntp.org 0.pool.ntp.org",
+			expected: "1.pool.ntp.org 0.pool.ntp.org",
 		},
 		{
-			name:     "dedupes repeated entries",
+			name:     "dedupes repeated entries, keeping first occurrence position",
 			input:    "0.pool.ntp.org 0.pool.ntp.org 1.pool.ntp.org",
 			expected: "0.pool.ntp.org 1.pool.ntp.org",
 		},
 		{
-			name:     "order independent for dual-stack IPv4/IPv6/hostname mix",
+			name:     "dual-stack IPv4/IPv6/hostname mix preserves configured priority order",
 			input:    "fd00::1 0.pool.ntp.org 192.0.2.1 2001:db8::123",
-			expected: "0.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1",
+			expected: "fd00::1 0.pool.ntp.org 192.0.2.1 2001:db8::123",
 		},
 		{
-			name:     "same dual-stack set in a different order normalizes equal",
+			name:     "same dual-stack set in a different order is not normalized equal, since order is priority",
 			input:    "2001:db8::123 192.0.2.1 fd00::1 0.pool.ntp.org",
-			expected: "0.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1",
+			expected: "2001:db8::123 192.0.2.1 fd00::1 0.pool.ntp.org",
 		},
 	}
 
@@ -51,9 +51,11 @@ func TestNormalizeNTPServers(t *testing.T) {
 	}
 }
 
-func TestNormalizeNTPServersIsOrderIndependent(t *testing.T) {
+func TestNormalizeNTPServersPreservesPriorityOrder(t *testing.T) {
 	a := "fd00::1 0.pool.ntp.org 192.0.2.1"
 	b := "192.0.2.1 fd00::1 0.pool.ntp.org"
 
-	assert.Equal(t, NormalizeNTPServers(a), NormalizeNTPServers(b))
+	// systemd-timesyncd contacts NTP= entries in the given order until one
+	// responds, so these must NOT normalize to the same value.
+	assert.NotEqual(t, NormalizeNTPServers(a), NormalizeNTPServers(b))
 }
