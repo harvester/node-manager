@@ -170,12 +170,13 @@ func (s *NTPSuite) TestNTP() {
 
 // TestNTPDualStack locks in that a space-separated NTPServers value mixing
 // hostnames with IPv4 and IPv6 literals (dual-stack) is passed through
-// correctly. The NodeConfig controller dedupes and sorts entries before
-// writing them out, so the string on the node is expected in sorted order.
+// correctly. The input is deliberately unsorted and contains a duplicate
+// entry, so the test also exercises the controller's dedupe+sort behavior,
+// not just that dual-stack values are accepted.
 func (s *NTPSuite) TestNTPDualStack() {
 	nodeConfigs := s.clientSet.NodeV1beta1().NodeConfigs("harvester-system")
 
-	dualStackNTPServers := "0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1"
+	dualStackNTPServers := "fd00::1 192.0.2.1 0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123"
 	expectedNTPServers := "0.opensuse.pool.ntp.org 192.0.2.1 2001:db8::123 fd00::1"
 
 	nodeConfig, err := nodeConfigs.Get(context.TODO(), s.targetNodeName, k8smetav1.GetOptions{})
