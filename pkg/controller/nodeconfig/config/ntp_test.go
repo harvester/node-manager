@@ -39,6 +39,15 @@ func TestReGenerateNTPConfig(t *testing.T) {
 	}
 }
 
+func TestReGenerateNTPConfigHandlesNilInput(t *testing.T) {
+	// NTPConfig is optional on NodeConfig's spec, so nil must be handled
+	// without panicking or propagating nil (DoNTPUpdate always dereferences
+	// handler.NTPConfig.NTPServers unconditionally).
+	got := reGenerateNTPConfig(nil)
+	assert.NotNil(t, got)
+	assert.Equal(t, "", got.NTPServers)
+}
+
 func TestReGenerateNTPConfigPreservesPriorityOrder(t *testing.T) {
 	a := reGenerateNTPConfig(&v1beta1.NTPConfig{NTPServers: "fd00::1 192.0.2.1 0.suse.pool.ntp.org"})
 	b := reGenerateNTPConfig(&v1beta1.NTPConfig{NTPServers: "0.suse.pool.ntp.org fd00::1 192.0.2.1"})

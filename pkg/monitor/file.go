@@ -48,6 +48,7 @@ func (monitor *ConfigFileMonitor) handleNTPConfigChange() {
 	nodeconfig, err := monitor.NodeConfigCtl.Get(HarvesterNS, monitor.NodeName, metav1.GetOptions{})
 	if err != nil {
 		logrus.Warnf("Get NodeConfig fail, err: %v", err)
+		return
 	}
 	ntpConfig := nodeconfig.Spec.NTPConfig
 	if ntpConfig == nil {
