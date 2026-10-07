@@ -357,7 +357,7 @@ func updateCondition(conditions []nodeconfigv1.ConfigStatus, c nodeconfigv1.Conf
 }
 
 func reGenerateNTPConfig(ntpconfigs *nodeconfigv1.NTPConfig) *nodeconfigv1.NTPConfig {
-	if ntpconfigs.NTPServers == "" {
+	if ntpconfigs == nil || ntpconfigs.NTPServers == "" {
 		return ntpconfigs
 	}
 

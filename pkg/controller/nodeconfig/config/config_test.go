@@ -53,9 +53,10 @@ func TestNTPConfigPersistence(t *testing.T) {
 	// ...and the NTP servers are set as we expect:
 	assert.Equal(t, map[string]string{"NTP": ntpConfig.NTPServers}, yipConfig.Stages[yipStageInitramfs][0].TimeSyncd)
 
-	// Update config with new servers
+	// Update config with new servers; "different" repeats so this also
+	// exercises the dedupe path (order-preserving: first occurrence wins).
 	newNtpConfig := v1beta1.NTPConfig{
-		NTPServers: "something different set of servers",
+		NTPServers: "something different set of different servers",
 	}
 	ntpConfigHandler.NTPConfig = reGenerateNTPConfig(&newNtpConfig)
 	err = ntpConfigHandler.UpdateNTPConfigPersistence()
@@ -73,7 +74,7 @@ func TestNTPConfigPersistence(t *testing.T) {
 	// New config should have new NTP servers, deduped (order preserved) by reGenerateNTPConfig
 	newConfig, err := utils.LoadYipConfig(settingsOEMPath)
 	assert.Nil(t, err)
-	assert.Equal(t, map[string]string{"NTP": ntpConfigHandler.NTPConfig.NTPServers}, newConfig.Stages[yipStageInitramfs][0].TimeSyncd)
+	assert.Equal(t, map[string]string{"NTP": "something different set of servers"}, newConfig.Stages[yipStageInitramfs][0].TimeSyncd)
 
 	// Remove the NTP settings
 	err = RemovePersistentNTPConfig()
