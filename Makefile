@@ -18,11 +18,6 @@ export MK_DOCKER_RUN_OPTS_TTY
 BUILD_FOR_CI ?=
 export BUILD_FOR_CI
 
-NO_CACHE ?=
-export NO_CACHE
-
-DOCKER_BUILD_EXTRA_ARGS := $(if $(NO_CACHE),--no-cache,)
-
 ifdef CI
   BOLD  :=
   CYAN  :=
@@ -39,7 +34,6 @@ DOCKER_BUILD = docker build \
     --progress=$(MK_DOCKER_PROGRESS) \
     --build-arg MK_REPO_ID \
     --build-arg MK_HOST_ARCH \
-    $(DOCKER_BUILD_EXTRA_ARGS) \
     -f $(ROOT)/Dockerfile $(ROOT)
 
 .DEFAULT_GOAL := default

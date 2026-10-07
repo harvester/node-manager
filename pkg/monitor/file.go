@@ -52,7 +52,7 @@ func (monitor *ConfigFileMonitor) handleNTPConfigChange() {
 	}
 	ntpConfig := nodeconfig.Spec.NTPConfig
 	if ntpConfig == nil {
-		logrus.Warnf("NTPConfig is nil")
+		logrus.Warnf("NTPConfig is nil for node %s, skip checking for NTP drift", monitor.NodeName)
 		return
 	}
 	wantedNTPServers = ntpConfig.NTPServers

@@ -368,7 +368,12 @@ func reGenerateNTPConfig(ntpconfigs *nodeconfigv1.NTPConfig) *nodeconfigv1.NTPCo
 	}
 
 	// dedupe the NTP servers so the list is sanitized
+	normalized := utils.NormalizeNTPServers(ntpconfigs.NTPServers)
+	if normalized != ntpconfigs.NTPServers {
+		logrus.Warnf("NTPServers contained duplicate entries and was deduped from: %q to %q", ntpconfigs.NTPServers, normalized)
+	}
+
 	return &nodeconfigv1.NTPConfig{
-		NTPServers: utils.NormalizeNTPServers(ntpconfigs.NTPServers),
+		NTPServers: normalized,
 	}
 }

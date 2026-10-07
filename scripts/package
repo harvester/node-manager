@@ -12,13 +12,7 @@ if [[ -n ${BUILD_FOR_CI} ]]; then
 fi
 DOCKERFILE=package/Dockerfile
 
-DOCKER_BUILD_EXTRA_ARGS=()
-if [[ -n ${NO_CACHE} ]]; then
-    DOCKER_BUILD_EXTRA_ARGS+=(--no-cache)
-fi
-
 docker build \
-    "${DOCKER_BUILD_EXTRA_ARGS[@]}" \
     -f ${DOCKERFILE} -t ${IMAGE} .
 echo Built ${IMAGE}
 
