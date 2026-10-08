@@ -48,14 +48,20 @@ func (monitor *ConfigFileMonitor) handleNTPConfigChange() {
 	nodeconfig, err := monitor.NodeConfigCtl.Get(HarvesterNS, monitor.NodeName, metav1.GetOptions{})
 	if err != nil {
 		logrus.Warnf("Get NodeConfig fail, err: %v", err)
-	} else {
-		wantedNTPServers = nodeconfig.Spec.NTPConfig.NTPServers
-		logrus.Debugf("Get the wanted NTP Servers: %s", wantedNTPServers)
+		return
 	}
+	ntpConfig := nodeconfig.Spec.NTPConfig
+	if ntpConfig == nil {
+		logrus.Warnf("NTPConfig is nil for node %s, skip checking for NTP drift", monitor.NodeName)
+		return
+	}
+	wantedNTPServers = ntpConfig.NTPServers
+	logrus.Debugf("Get the wanted NTP Servers: %s", wantedNTPServers)
+
 	currentNTPServers := getNTPServersOnNode()
 	logrus.Debugf("Current NTP Servers: %s, Config NTP Servers %s", currentNTPServers, wantedNTPServers)
 
-	if wantedNTPServers != "" && wantedNTPServers != currentNTPServers {
+	if wantedNTPServers != "" && utils.NormalizeNTPServers(wantedNTPServers) != utils.NormalizeNTPServers(currentNTPServers) {
 		logrus.Infof("Enqueue to make controller to update NTP Servers")
 		monitor.NodeConfigCtl.Enqueue(nodeconfig.Namespace, nodeconfig.Name)
 	}

@@ -2,6 +2,8 @@ package utils
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -40,4 +42,27 @@ func GetToMonitorServices() []string {
 
 func DbusPropertiesGet() string {
 	return DbusPropertiesIface + ".Get"
+}
+
+// NormalizeNTPServers splits a space-separated NTPServers value (hostnames
+// and/or IPv4/IPv6 literals) and drops duplicate entries, preserving the
+// order of first occurrence. systemd-timesyncd's NTP= contacts entries in
+// the given order until one responds, so entries must never be reordered,
+// only deduplicated.
+func NormalizeNTPServers(servers string) string {
+	if servers == "" {
+		return ""
+	}
+
+	fields := strings.Split(servers, " ")
+	deduped := make([]string, 0, len(fields))
+	for _, field := range fields {
+		if field == "" {
+			continue
+		}
+		if !slices.Contains(deduped, field) {
+			deduped = append(deduped, field)
+		}
+	}
+	return strings.Join(deduped, " ")
 }

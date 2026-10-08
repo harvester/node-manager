@@ -8,8 +8,6 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"slices"
-	"strings"
 	"sync"
 
 	"github.com/harvester/go-common/files"
@@ -67,7 +65,7 @@ func (handler *NTPHandler) DoNTPUpdate(forceUpdate bool) (bool, error) {
 			logrus.Warnf("Unmarshal applied config from annotation failed, assume that is empty err: %v", err)
 		}
 
-		if content.NTPServers == handler.NTPConfig.NTPServers {
+		if utils.NormalizeNTPServers(content.NTPServers) == utils.NormalizeNTPServers(handler.NTPConfig.NTPServers) {
 			return false, nil
 		}
 	}
@@ -359,20 +357,23 @@ func updateCondition(conditions []nodeconfigv1.ConfigStatus, c nodeconfigv1.Conf
 }
 
 func reGenerateNTPConfig(ntpconfigs *nodeconfigv1.NTPConfig) *nodeconfigv1.NTPConfig {
+	if ntpconfigs == nil {
+		// NTPConfig is optional on NodeConfig; callers (DoNTPUpdate) assume
+		// handler.NTPConfig is never nil, so normalize to an empty config
+		// instead of propagating nil.
+		return &nodeconfigv1.NTPConfig{}
+	}
 	if ntpconfigs.NTPServers == "" {
 		return ntpconfigs
 	}
 
-	// fileter the duplicated NTP servers
-	currentNTPServers := strings.Split(ntpconfigs.NTPServers, " ")
-	parsedNTPServers := make([]string, 0)
-	for _, ntpServer := range currentNTPServers {
-		if !slices.Contains(parsedNTPServers, ntpServer) {
-			parsedNTPServers = append(parsedNTPServers, ntpServer)
-		}
-	}
-	return &nodeconfigv1.NTPConfig{
-		NTPServers: strings.Join(parsedNTPServers, " "),
+	// dedupe the NTP servers so the list is sanitized
+	normalized := utils.NormalizeNTPServers(ntpconfigs.NTPServers)
+	if normalized != ntpconfigs.NTPServers {
+		logrus.Warnf("NTPServers contained duplicate entries and was deduped from: %q to %q", ntpconfigs.NTPServers, normalized)
 	}
 
+	return &nodeconfigv1.NTPConfig{
+		NTPServers: normalized,
+	}
 }
