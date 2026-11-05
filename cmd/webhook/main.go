@@ -97,8 +97,14 @@ func runWebhookServer(ctx context.Context, cfg *rest.Config, options *config.Opt
 		return err
 	}
 
+	hugepageValidator, err := admitter.NewHugepageValidator(cfg)
+	if err != nil {
+		return err
+	}
+
 	var validators = []admission.Validator{
 		cloudinitValidator,
+		hugepageValidator,
 	}
 
 	if err := webhookServer.RegisterValidators(validators...); err != nil {
