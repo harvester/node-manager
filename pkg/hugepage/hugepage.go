@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
+	"github.com/mudler/yip/pkg/schema"
 	"github.com/prometheus/procfs"
 	"github.com/sirupsen/logrus"
+
+	"github.com/harvester/node-manager/pkg/controller/nodeconfig/config"
 
 	nodev1beta1 "github.com/harvester/node-manager/pkg/apis/node.harvesterhci.io/v1beta1"
 )
@@ -18,6 +22,11 @@ const (
 	THPEnabledFile      = "enabled"
 	THPShmemEnabledFile = "shmem_enabled"
 	THPDefragFile       = "defrag"
+
+	SHPPath         = "/sys/kernel/mm/hugepages/hugepages-2048kB/"
+	NrHugepagesFile = "nr_hugepages"
+
+	hugepageStageName = "Hugepage Configuration"
 )
 
 var (
@@ -28,9 +37,10 @@ type Manager struct {
 	ctx     context.Context
 	procFs  procfs.FS
 	thpPath string
+	shpPath string
 }
 
-func NewHugepageManager(ctx context.Context, THPPath string) (*Manager, error) {
+func NewHugepageManager(ctx context.Context, thpPath, shpPath string) (*Manager, error) {
 	procFs, err := procfs.NewFS("/proc")
 	if err != nil {
 		return nil, fmt.Errorf("error initialising hugepage manager: %w", err)
@@ -38,9 +48,9 @@ func NewHugepageManager(ctx context.Context, THPPath string) (*Manager, error) {
 	manager = &Manager{
 		ctx:     ctx,
 		procFs:  procFs,
-		thpPath: THPPath,
+		thpPath: thpPath,
+		shpPath: shpPath,
 	}
-
 	return manager, nil
 }
 
@@ -55,8 +65,14 @@ func (h *Manager) GenerateStatus() (*nodev1beta1.HugepageStatus, error) {
 		return nil, err
 	}
 
+	shpConfig, err := h.readSHPConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	return &nodev1beta1.HugepageStatus{
 		Transparent: *thpConfig,
+		Static:      *shpConfig,
 		Meminfo: nodev1beta1.Meminfo{
 			AnonHugePages:  *meminfo.AnonHugePagesBytes,
 			ShmemHugePages: *meminfo.ShmemHugePagesBytes,
@@ -131,14 +147,44 @@ func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 	}, nil
 }
 
-func (h *Manager) ApplyConfig(thp *nodev1beta1.THPConfig) error {
-	if err := h.write(filepath.Join(h.thpPath, THPEnabledFile), string(thp.Enabled)); err != nil {
+func (h *Manager) readSHPConfig() (*nodev1beta1.SHPConfig, error) {
+	nrHugepagesLine, err := h.read(filepath.Join(h.shpPath, NrHugepagesFile))
+	if err != nil {
+		return nil, err
+	}
+	nrHugepages, err := strconv.ParseUint(strings.TrimSpace(nrHugepagesLine), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	return &nodev1beta1.SHPConfig{
+		NrHugepages: nrHugepages,
+	}, nil
+}
+
+func (h *Manager) UpdateHugepageConfigPersistence(hp *nodev1beta1.HugepageSpec) error {
+	stage := schema.Stage{
+		Name: hugepageStageName,
+		Commands: []string{
+			fmt.Sprintf("echo %d > %s", hp.Static.NrHugepages, filepath.Join(h.shpPath, NrHugepagesFile)),
+			fmt.Sprintf("echo %s > %s", string(hp.Transparent.Enabled), filepath.Join(h.thpPath, THPEnabledFile)),
+			fmt.Sprintf("echo %s > %s", string(hp.Transparent.ShmemEnabled), filepath.Join(h.thpPath, THPShmemEnabledFile)),
+			fmt.Sprintf("echo %s > %s", string(hp.Transparent.Defrag), filepath.Join(h.thpPath, THPDefragFile)),
+		},
+	}
+	return config.UpdatePersistentOEMSettings(stage)
+}
+
+func (h *Manager) ApplyConfig(hp *nodev1beta1.HugepageSpec) error {
+	if err := h.write(filepath.Join(h.shpPath, NrHugepagesFile), strconv.FormatUint(hp.Static.NrHugepages, 10)); err != nil {
 		return err
 	}
-	if err := h.write(filepath.Join(h.thpPath, THPShmemEnabledFile), string(thp.ShmemEnabled)); err != nil {
+	if err := h.write(filepath.Join(h.thpPath, THPEnabledFile), string(hp.Transparent.Enabled)); err != nil {
 		return err
 	}
-	if err := h.write(filepath.Join(h.thpPath, THPDefragFile), string(thp.Defrag)); err != nil {
+	if err := h.write(filepath.Join(h.thpPath, THPShmemEnabledFile), string(hp.Transparent.ShmemEnabled)); err != nil {
+		return err
+	}
+	if err := h.write(filepath.Join(h.thpPath, THPDefragFile), string(hp.Transparent.Defrag)); err != nil {
 		return err
 	}
 	return nil

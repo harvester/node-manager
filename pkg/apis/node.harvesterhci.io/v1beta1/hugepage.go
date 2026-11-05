@@ -34,12 +34,20 @@ type HugepageSpec struct {
 	// +optional
 	// +kubebuilder:validation:Optional
 	Transparent THPConfig `json:"transparent,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Optional
+	Static SHPConfig `json:"static,omitempty"`
 }
 
 type HugepageStatus struct {
 	// +optional
 	// +kubebuilder:validation:Optional
 	Transparent THPConfig `json:"transparent,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Optional
+	Static SHPConfig `json:"static,omitempty"`
 
 	// +optional
 	// +kubebuilder:validation:Optional
@@ -91,6 +99,16 @@ type THPConfig struct {
 	// +kubebuilder:validation:Enum=always;defer;defer+madvise;madvise;never
 	// +kubebuilder:default=defer
 	Defrag THPDefrag `json:"defrag"`
+}
+
+type SHPConfig struct {
+	// Number of persistent hugepages
+	// +optional
+	NrHugepages uint64 `json:"nrHugepages,omitempty"`
+
+	// We could look at exposing other knobs here, e.g. NrOvercommitHugepages
+	// but it's probably best to not do this until we know we have a confirmed
+	// need for it (AFAIK k8s doesn't support overcommiting huegpages, so...)
 }
 
 type THPEnabled string
