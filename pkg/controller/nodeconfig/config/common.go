@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"slices"
+	"sync"
 
 	"github.com/harvester/go-common/files"
 	"github.com/harvester/node-manager/pkg/utils"
@@ -23,6 +24,8 @@ var (
 	oemPath                   = "/host/oem/"
 	settingsOEMPath           = "/host/oem/99_settings.yaml"
 	settingsOEMPathBackupPath = "/host/oem/99_settings.yaml.bak"
+
+	persistentSettingsLock sync.Mutex
 )
 
 type NTPConfigTemplate struct {
@@ -39,6 +42,9 @@ func generateNTPConfigData() string {
 }
 
 func UpdatePersistentOEMSettings(stage schema.Stage) error {
+	persistentSettingsLock.Lock()
+	defer persistentSettingsLock.Unlock()
+
 	_, err := os.Stat(settingsOEMPath)
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("stat %s failed: %v", settingsOEMPath, err)
@@ -74,6 +80,9 @@ func UpdatePersistentOEMSettings(stage schema.Stage) error {
 }
 
 func RemovePersistentOEMSettings(stageName string) error {
+	persistentSettingsLock.Lock()
+	defer persistentSettingsLock.Unlock()
+
 	yipConfig, err := utils.LoadYipConfig(settingsOEMPath)
 	if err != nil {
 		if os.IsNotExist(err) {
