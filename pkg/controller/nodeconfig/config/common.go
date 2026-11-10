@@ -52,6 +52,7 @@ func UpdatePersistentOEMSettings(stage schema.Stage) error {
 
 	settings := utils.GenerateOEMTemplate()
 	doBackup := true
+	settingsHaveChanged := true
 	if os.IsNotExist(err) {
 		// New file, we can just set the stages to whatever was passed in.
 		settings.Stages = make(map[string][]schema.Stage)
@@ -63,7 +64,8 @@ func UpdatePersistentOEMSettings(stage schema.Stage) error {
 		if err != nil {
 			return fmt.Errorf("load %s to YIP format failed: %v", settingsOEMPath, err)
 		}
-		logrus.Debugf("Loaded settings from file %s, content: %+v", settingsOEMPath, settings)
+		origSettings := fmt.Sprintf("%+v", settings)
+		logrus.Debugf("Loaded settings from file %s, content: %s", settingsOEMPath, origSettings)
 		// ...then merge the new stage into whatever stages are already present,
 		// either overwriting or appending as necessary.
 		existingStage := slices.IndexFunc(settings.Stages[yipStageInitramfs], func(s schema.Stage) bool {
@@ -74,9 +76,16 @@ func UpdatePersistentOEMSettings(stage schema.Stage) error {
 		} else {
 			settings.Stages[yipStageInitramfs][existingStage] = stage
 		}
+		if fmt.Sprintf("%+v", settings) == origSettings {
+			logrus.Debugf("Settings are unchanged")
+			settingsHaveChanged = false
+		}
 	}
 
-	return writePersistentOEMSettings(settings, doBackup)
+	if settingsHaveChanged {
+		return writePersistentOEMSettings(settings, doBackup)
+	}
+	return nil
 }
 
 func RemovePersistentOEMSettings(stageName string) error {
