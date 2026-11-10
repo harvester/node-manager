@@ -82,12 +82,12 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 		if hugetlb, err := c.HugepageCache.Get(c.NodeName); err == nil {
 			hugetlbCpy := hugetlb.DeepCopy()
 			if hugetlbCpy.Spec.Static.NrHugepages < uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate) {
-				// whatever was set before, bump it up by what Longhorn needs.
-				hugetlbCpy.Spec.Static.NrHugepages += uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)
+				// make sure there's enough hugepages allocated for Longhorn
+				hugetlbCpy.Spec.Static.NrHugepages = uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)
 				logrus.WithFields(logrus.Fields{
 					"name": confName,
-				}).Infof("Bumping NrHugepages from %d to %d because longhorn needs %d",
-					hugetlb.Spec.Static.NrHugepages, hugetlbCpy.Spec.Static.NrHugepages, nodecfg.Spec.LonghornConfig.HugepagesToAllocate)
+				}).Infof("Setting NrHugepages to %d as required by Longhorn (was previously %d)",
+					hugetlbCpy.Spec.Static.NrHugepages, hugetlb.Spec.Static.NrHugepages)
 			}
 			if !reflect.DeepEqual(hugetlb, hugetlbCpy) {
 				if _, err := c.HugepageClient.Update(hugetlbCpy); err != nil {
