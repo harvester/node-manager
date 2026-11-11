@@ -108,7 +108,7 @@ type SHPConfig struct {
 
 	// We could look at exposing other knobs here, e.g. NrOvercommitHugepages
 	// but it's probably best to not do this until we know we have a confirmed
-	// need for it (AFAIK k8s doesn't support overcommiting huegpages, so...)
+	// need for it (AFAIK k8s doesn't support overcommiting hugepages, so...)
 }
 
 type THPEnabled string
