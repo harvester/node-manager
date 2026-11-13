@@ -55,8 +55,8 @@ func (v *Hugepage) validate(hugepage *v1beta1.Hugepage) error {
 		}
 		return werror.NewInternalError(fmt.Sprintf("failed to find nodeconfig for %s: %v", hugepage.Name, err))
 	}
-	if nodeconfig.Spec.LonghornConfig != nil && nodeconfig.Spec.LonghornConfig.EnableV2DataEngine && hugepage.Spec.Static.NrHugepages < uint64(nodeconfig.Spec.LonghornConfig.HugepagesToAllocate) {
-		return werror.NewInvalidError(fmt.Sprintf("spec.static.nrHugepages must be at least %d (required by Longhorn V2 Data Engine)", nodeconfig.Spec.LonghornConfig.HugepagesToAllocate), "spec.static.nrHugepages")
+	if nodeconfig.Spec.LonghornConfig != nil && nodeconfig.Spec.LonghornConfig.EnableV2DataEngine && hugepage.Spec.Static.Hugepages < uint64(nodeconfig.Spec.LonghornConfig.HugepagesToAllocate) {
+		return werror.NewInvalidError(fmt.Sprintf("spec.static.hugepages must be at least %d (required by Longhorn V2 Data Engine)", nodeconfig.Spec.LonghornConfig.HugepagesToAllocate), "spec.static.hugepages")
 	}
 	return nil
 }

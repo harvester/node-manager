@@ -25,9 +25,9 @@ func Test_HugepageCreate(t *testing.T) {
 		input v1beta1.HugepageSpec
 		valid bool
 	}{
-		{"nrHugepages < hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{NrHugepages: 0}}, false},
-		{"nrHugepages == hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{NrHugepages: 1024}}, true},
-		{"nrHugepages > hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{NrHugepages: 2048}}, true},
+		{"hugepages < hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{Hugepages: 0}}, false},
+		{"hugepages == hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{Hugepages: 1024}}, true},
+		{"hugepages > hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{Hugepages: 2048}}, true},
 	}
 
 	for _, tt := range tests {
@@ -57,9 +57,9 @@ func Test_HugepageUpdate(t *testing.T) {
 		input v1beta1.HugepageSpec
 		valid bool
 	}{
-		{"nrHugepages < hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{NrHugepages: 0}}, false},
-		{"nrHugepages == hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{NrHugepages: 1024}}, true},
-		{"nrHugepages > hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{NrHugepages: 2048}}, true},
+		{"hugepages < hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{Hugepages: 0}}, false},
+		{"hugepages == hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{Hugepages: 1024}}, true},
+		{"hugepages > hugepagesToAllocate", v1beta1.HugepageSpec{Static: v1beta1.SHPConfig{Hugepages: 2048}}, true},
 	}
 
 	for _, tt := range tests {
