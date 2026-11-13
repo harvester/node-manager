@@ -23,8 +23,8 @@ const (
 	THPShmemEnabledFile = "shmem_enabled"
 	THPDefragFile       = "defrag"
 
-	SHPPath         = "/sys/kernel/mm/hugepages/hugepages-2048kB/"
-	NrHugepagesFile = "nr_hugepages"
+	SHPPath       = "/sys/kernel/mm/hugepages/hugepages-2048kB/"
+	HugepagesFile = "nr_hugepages"
 
 	hugepageStageName = "Hugepage Configuration"
 )
@@ -148,16 +148,16 @@ func (h *Manager) readTHPConfig() (*nodev1beta1.THPConfig, error) {
 }
 
 func (h *Manager) readSHPConfig() (*nodev1beta1.SHPConfig, error) {
-	nrHugepagesLine, err := h.read(filepath.Join(h.shpPath, NrHugepagesFile))
+	hugepagesLine, err := h.read(filepath.Join(h.shpPath, HugepagesFile))
 	if err != nil {
 		return nil, err
 	}
-	nrHugepages, err := strconv.ParseUint(strings.TrimSpace(nrHugepagesLine), 10, 64)
+	hugepages, err := strconv.ParseUint(strings.TrimSpace(hugepagesLine), 10, 64)
 	if err != nil {
 		return nil, err
 	}
 	return &nodev1beta1.SHPConfig{
-		NrHugepages: nrHugepages,
+		Hugepages: hugepages,
 	}, nil
 }
 
@@ -165,7 +165,7 @@ func (h *Manager) UpdateHugepageConfigPersistence(hp *nodev1beta1.HugepageSpec) 
 	stage := schema.Stage{
 		Name: hugepageStageName,
 		Commands: []string{
-			fmt.Sprintf("echo %d > %s", hp.Static.NrHugepages, filepath.Join(h.shpPath, NrHugepagesFile)),
+			fmt.Sprintf("echo %d > %s", hp.Static.Hugepages, filepath.Join(h.shpPath, HugepagesFile)),
 			fmt.Sprintf("echo %s > %s", string(hp.Transparent.Enabled), filepath.Join(h.thpPath, THPEnabledFile)),
 			fmt.Sprintf("echo %s > %s", string(hp.Transparent.ShmemEnabled), filepath.Join(h.thpPath, THPShmemEnabledFile)),
 			fmt.Sprintf("echo %s > %s", string(hp.Transparent.Defrag), filepath.Join(h.thpPath, THPDefragFile)),
@@ -175,7 +175,7 @@ func (h *Manager) UpdateHugepageConfigPersistence(hp *nodev1beta1.HugepageSpec) 
 }
 
 func (h *Manager) ApplyConfig(hp *nodev1beta1.HugepageSpec) error {
-	if err := h.write(filepath.Join(h.shpPath, NrHugepagesFile), strconv.FormatUint(hp.Static.NrHugepages, 10)); err != nil {
+	if err := h.write(filepath.Join(h.shpPath, HugepagesFile), strconv.FormatUint(hp.Static.Hugepages, 10)); err != nil {
 		return err
 	}
 	if err := h.write(filepath.Join(h.thpPath, THPEnabledFile), string(hp.Transparent.Enabled)); err != nil {

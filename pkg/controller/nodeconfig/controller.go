@@ -81,20 +81,20 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 
 		if hugetlb, err := c.HugepageCache.Get(c.NodeName); err == nil {
 			hugetlbCpy := hugetlb.DeepCopy()
-			if hugetlbCpy.Spec.Static.NrHugepages < uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate) {
+			if hugetlbCpy.Spec.Static.Hugepages < uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate) {
 				// make sure there's enough hugepages allocated for Longhorn
-				hugetlbCpy.Spec.Static.NrHugepages = uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)
+				hugetlbCpy.Spec.Static.Hugepages = uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)
 				logrus.WithFields(logrus.Fields{
 					"name": confName,
-				}).Infof("Setting NrHugepages to %d as required by Longhorn (was previously %d)",
-					hugetlbCpy.Spec.Static.NrHugepages, hugetlb.Spec.Static.NrHugepages)
+				}).Infof("Setting Hugepages to %d as required by Longhorn (was previously %d)",
+					hugetlbCpy.Spec.Static.Hugepages, hugetlb.Spec.Static.Hugepages)
 			}
 			if !reflect.DeepEqual(hugetlb, hugetlbCpy) {
 				if _, err := c.HugepageClient.Update(hugetlbCpy); err != nil {
 					logrus.WithFields(logrus.Fields{
 						"name": confName,
 						"err":  err.Error(),
-					}).Error("Failed to update NrHugepages")
+					}).Error("Failed to update Hugepages")
 					return nil, err
 				}
 			}

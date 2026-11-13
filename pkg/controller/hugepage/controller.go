@@ -74,12 +74,12 @@ func (c *Controller) OnChange(key string, hugetlb *nodev1beta1.Hugepage) (*nodev
 		return hugetlb, fmt.Errorf("error generating hugepage status: %w", err)
 	}
 
-	if hugetlb.Spec.Static.NrHugepages == 0 && observedStatus.Static.NrHugepages > 0 {
+	if hugetlb.Spec.Static.Hugepages == 0 && observedStatus.Static.Hugepages > 0 {
 		// Special case: either the user is deliberately setting hugepages to zero,
 		// (there were some allocated before, but now we want them to go away),
 		// or we're in a weird upgrade corner case, where the nodeconfig controller
 		// allocated hugepages already (before upgrade), but hasn't yet bumped this
-		// hugepage object's NrHugepages up to whatever Longhorn needs (after upgrade).
+		// hugepage object's Hugepages up to whatever Longhorn needs (after upgrade).
 		nodeConfig, err := c.NodeConfigCache.Get(common.HarvesterSystemNamespaceName, key)
 		if err == nil {
 			if nodeConfig.Spec.LonghornConfig != nil &&
@@ -103,7 +103,7 @@ func (c *Controller) OnChange(key string, hugetlb *nodev1beta1.Hugepage) (*nodev
 		return hugetlb, err
 	}
 
-	origNrHugepages := observedStatus.Static.NrHugepages
+	origHugepages := observedStatus.Static.Hugepages
 
 	// if observedConfig is not the same as defined config, we need to bring it in sync
 	if !reflect.DeepEqual(hugetlb.Spec.Transparent, observedStatus.Transparent) ||
@@ -141,15 +141,15 @@ func (c *Controller) OnChange(key string, hugetlb *nodev1beta1.Hugepage) (*nodev
 		}
 	}
 
-	if observedStatus.Static.NrHugepages != origNrHugepages {
+	if observedStatus.Static.Hugepages != origHugepages {
 		// The number of allocated hugepages has changed
-		logrus.Debugf("origNrHugepages: %d, now %d", origNrHugepages, observedStatus.Static.NrHugepages)
-		if observedStatus.Static.NrHugepages == hugetlb.Spec.Static.NrHugepages {
+		logrus.Debugf("origHugepages: %d, now %d", origHugepages, observedStatus.Static.Hugepages)
+		if observedStatus.Static.Hugepages == hugetlb.Spec.Static.Hugepages {
 			// And it has changed _to_ the desired allocation, so we can restart the kubelet
-			logrus.Infof("Restarting kubelet to set nr_hugepages=%d", hugetlb.Spec.Static.NrHugepages)
+			logrus.Infof("Restarting kubelet to set hugepages=%d", hugetlb.Spec.Static.Hugepages)
 			restartKubelet()
 		} else {
-			logrus.Debugf("nrHugepages %d not yet at target %d", observedStatus.Static.NrHugepages, hugetlb.Spec.Static.NrHugepages)
+			logrus.Debugf("hugepages %d not yet at target %d", observedStatus.Static.Hugepages, hugetlb.Spec.Static.Hugepages)
 		}
 	}
 
