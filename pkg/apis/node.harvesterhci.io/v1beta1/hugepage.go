@@ -104,7 +104,7 @@ type THPConfig struct {
 type SHPConfig struct {
 	// Number of persistent hugepages
 	// +optional
-	NrHugepages uint64 `json:"nrHugepages,omitempty"`
+	Hugepages uint64 `json:"hugepages,omitempty"`
 
 	// We could look at exposing other knobs here, e.g. NrOvercommitHugepages
 	// but it's probably best to not do this until we know we have a confirmed

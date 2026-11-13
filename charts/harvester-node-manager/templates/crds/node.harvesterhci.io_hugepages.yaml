@@ -41,7 +41,7 @@ spec:
             properties:
               static:
                 properties:
-                  nrHugepages:
+                  hugepages:
                     description: Number of persistent hugepages
                     format: int64
                     type: integer
@@ -111,7 +111,7 @@ spec:
                 type: object
               static:
                 properties:
-                  nrHugepages:
+                  hugepages:
                     description: Number of persistent hugepages
                     format: int64
                     type: integer

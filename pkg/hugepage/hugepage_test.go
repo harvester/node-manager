@@ -37,7 +37,7 @@ func Test_GenerateStatus(t *testing.T) {
 	assert.NoError(err, "NewHugepageManager: expected to find no error")
 	status, err := mgr.GenerateStatus()
 	assert.NoError(err, "GenerateStatus: expected to find no error")
-	assert.Equal(uint64(1024), status.Static.NrHugepages, "expected to find 1024")
+	assert.Equal(uint64(1024), status.Static.Hugepages, "expected to find 1024")
 	assert.Equal(v1beta1.THPEnabled("madvise"), status.Transparent.Enabled, "expected to find madvise")
 	assert.Equal(v1beta1.THPShmemEnabled("never"), status.Transparent.ShmemEnabled, "expected to find never")
 	assert.Equal(v1beta1.THPDefrag("madvise"), status.Transparent.Defrag, "expected to find madvise")
@@ -46,7 +46,7 @@ func Test_GenerateStatus(t *testing.T) {
 func Test_ApplyConfig(t *testing.T) {
 	assert := require.New(t)
 	tmpDir := t.TempDir()
-	for _, file := range []string{NrHugepagesFile, THPEnabledFile, THPShmemEnabledFile, THPDefragFile} {
+	for _, file := range []string{HugepagesFile, THPEnabledFile, THPShmemEnabledFile, THPDefragFile} {
 		path := filepath.Join(tmpDir, file)
 		f, err := os.Create(path)
 		if err != nil {
@@ -63,7 +63,7 @@ func Test_ApplyConfig(t *testing.T) {
 			Defrag:       "madvise",
 		},
 		Static: v1beta1.SHPConfig{
-			NrHugepages: 1024,
+			Hugepages: 1024,
 		},
 	})
 	assert.NoError(err, "ApplyConfig: expected to find no error")
