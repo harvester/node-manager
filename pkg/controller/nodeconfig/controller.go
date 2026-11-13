@@ -31,16 +31,20 @@ type Controller struct {
 	NodeConfigs      ctlv1.NodeConfigController
 	NodeConfigsCache ctlv1.NodeConfigCache
 	NodeClient       ctlnode.NodeController
+	HugepageCache    ctlv1.HugepageCache
+	HugepageClient   ctlv1.HugepageController
 	mtx              *sync.Mutex
 }
 
-func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController, nodes ctlnode.NodeController, mtx *sync.Mutex) (*Controller, error) {
+func Register(ctx context.Context, nodeName string, nodecfg ctlv1.NodeConfigController, hugepagectl ctlv1.HugepageController, nodes ctlnode.NodeController, mtx *sync.Mutex) (*Controller, error) {
 	ctl := &Controller{
 		ctx:              ctx,
 		NodeName:         nodeName,
 		NodeConfigs:      nodecfg,
 		NodeConfigsCache: nodecfg.Cache(),
 		NodeClient:       nodes,
+		HugepageCache:    hugepagectl.Cache(),
+		HugepageClient:   hugepagectl,
 		mtx:              mtx,
 	}
 
@@ -57,6 +61,8 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 		return nil, nil
 	}
 
+	logrus.WithField("name", confName).Debug("reconciling nodeconfig object")
+
 	// V2 Data Engine related handling.  This is intentionally not bothering
 	// to check whether the engine is already enabled or not, it runs on any
 	// change to the node config, even if that change wasn't related to the
@@ -68,9 +74,39 @@ func (c *Controller) OnNodeConfigChange(key string, nodecfg *nodeconfigv1.NodeCo
 	// the kubelet needs to be restarted to pick up the change and reflect
 	// that in node.status.capacity.hugepages-2Mi, so that Longhorn can
 	// query that value when lhs/v2-data-engine is set to true.  This restart
-	// logic is handled inside EnableV2DataEngine() and DisableV2DataEngine().
+	// logic was previously handled inside EnableV2DataEngine() and
+	// DisableV2DataEngine(), but has now moved to hugepage.OnChange(), since
+	// we're exposing hugepage config to the user.
 	if nodecfg.Spec.LonghornConfig != nil && nodecfg.Spec.LonghornConfig.EnableV2DataEngine {
-		if err := config.EnableV2DataEngine(uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)); err != nil {
+
+		if hugetlb, err := c.HugepageCache.Get(c.NodeName); err == nil {
+			hugetlbCpy := hugetlb.DeepCopy()
+			if hugetlbCpy.Spec.Static.Hugepages < uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate) {
+				// make sure there's enough hugepages allocated for Longhorn
+				hugetlbCpy.Spec.Static.Hugepages = uint64(nodecfg.Spec.LonghornConfig.HugepagesToAllocate)
+				logrus.WithFields(logrus.Fields{
+					"name": confName,
+				}).Infof("Setting Hugepages to %d as required by Longhorn (was previously %d)",
+					hugetlbCpy.Spec.Static.Hugepages, hugetlb.Spec.Static.Hugepages)
+			}
+			if !reflect.DeepEqual(hugetlb, hugetlbCpy) {
+				if _, err := c.HugepageClient.Update(hugetlbCpy); err != nil {
+					logrus.WithFields(logrus.Fields{
+						"name": confName,
+						"err":  err.Error(),
+					}).Error("Failed to update Hugepages")
+					return nil, err
+				}
+			}
+		} else {
+			logrus.WithFields(logrus.Fields{
+				"nodeName": c.NodeName,
+				"err":      err.Error(),
+			}).Error("Failed to get hugepage CR")
+			return nil, err
+		}
+
+		if err := config.EnableV2DataEngine(); err != nil {
 			logrus.WithFields(logrus.Fields{
 				"err": err.Error(),
 			}).Error("Failed to enable V2 Data Engine")
