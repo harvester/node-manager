@@ -43,6 +43,8 @@ const (
 	PagesToScanPath            = KSMPath + "/pages_to_scan"
 	SleepMillisecsPath         = KSMPath + "/sleep_millisecs"
 	MergeAcrossNodes           = KSMPath + "/merge_across_nodes"
+	UseZeroPagesPath           = KSMPath + "/use_zero_pages"
+	ZeroPagesPath              = KSMPath + "/ksm_zero_pages"
 )
 
 var (
@@ -71,6 +73,7 @@ type (
 		fullScans        uint64
 		stableNodeChains uint64
 		stableNodeDups   uint64
+		zeroPages        uint64
 	}
 )
 
@@ -171,6 +174,10 @@ func (k *ksmd) readKsmdStatus() (*ksmdStatus, error) {
 			ks.stableNodeDups = v
 		}
 	}
+	// ksm_zero_pages only exists on newer kernels, so it is read best-effort.
+	if v, err := readKsmPath(ZeroPagesPath); err == nil {
+		ks.zeroPages = v
+	}
 	return ks, nil
 }
 
@@ -206,6 +213,16 @@ func getKsmd() (*process.Process, error) {
 
 func (k *ksmd) getMergeAcrossNodes() (uint64, error) {
 	return readKsmPath(MergeAcrossNodes)
+}
+
+func (k *ksmd) getUseZeroPages() (uint64, error) {
+	return readKsmPath(UseZeroPagesPath)
+}
+
+// setUseZeroPages writes /sys/kernel/mm/ksm/use_zero_pages. Unlike
+// merge_across_nodes, the kernel allows changing it while pages are merged.
+func (k *ksmd) setUseZeroPages(toggle uint) error {
+	return saveKsmPath(UseZeroPagesPath, []byte(strconv.FormatUint(uint64(toggle), 10)))
 }
 
 func saveKsmPath(p ksmPath, b []byte) error {

@@ -86,6 +86,14 @@ spec:
                   maximum: 100
                   minimum: 0
                   type: integer
+                useZeroPages:
+                  description: |-
+                    UseZeroPages sets /sys/kernel/mm/ksm/use_zero_pages. When 1, KSM maps
+                    empty (zero-filled) pages to the kernel zero page instead of a shared KSM
+                    page, which avoids a hot shared page and is accounted in status.zeroPages.
+                  maximum: 1
+                  minimum: 0
+                  type: integer
               required:
                 - ksmtunedParameters
                 - mergeAcrossNodes
@@ -130,6 +138,12 @@ spec:
                   type: integer
                 volatile:
                   description: how many pages changing too fast to be placed in a tree
+                  format: int64
+                  type: integer
+                zeroPages:
+                  description: |-
+                    how many empty pages are mapped to the kernel zero page by KSM
+                    (only counted when useZeroPages is 1; 0 on kernels without ksm_zero_pages)
                   format: int64
                   type: integer
               required:
