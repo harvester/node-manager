@@ -175,9 +175,6 @@ func (h *Manager) UpdateHugepageConfigPersistence(hp *nodev1beta1.HugepageSpec) 
 }
 
 func (h *Manager) ApplyConfig(hp *nodev1beta1.HugepageSpec) error {
-	if err := h.write(filepath.Join(h.shpPath, HugepagesFile), strconv.FormatUint(hp.Static.Hugepages, 10)); err != nil {
-		return err
-	}
 	if err := h.write(filepath.Join(h.thpPath, THPEnabledFile), string(hp.Transparent.Enabled)); err != nil {
 		return err
 	}
@@ -185,6 +182,9 @@ func (h *Manager) ApplyConfig(hp *nodev1beta1.HugepageSpec) error {
 		return err
 	}
 	if err := h.write(filepath.Join(h.thpPath, THPDefragFile), string(hp.Transparent.Defrag)); err != nil {
+		return err
+	}
+	if err := h.write(filepath.Join(h.shpPath, HugepagesFile), strconv.FormatUint(hp.Static.Hugepages, 10)); err != nil {
 		return err
 	}
 	return nil
