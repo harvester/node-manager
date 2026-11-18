@@ -2,7 +2,9 @@ package ksmtuned
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"sync"
 	"time"
@@ -24,6 +26,7 @@ var (
 	ksmReg = regexp.MustCompile(`\d+`)
 
 	mergeAcrossNodesLocker sync.Mutex
+	useZeroPagesLocker     sync.Mutex
 
 	// single instance
 	once     sync.Once
@@ -223,6 +226,7 @@ func (k *Ksmtuned) status() error {
 		FullScans:        ks.fullScans,
 		StableNodeDups:   ks.stableNodeDups,
 		StableNodeChains: ks.stableNodeChains,
+		ZeroPages:        ks.zeroPages,
 		KsmdPhase:        k.ksmdPhase,
 	}
 	return nil
@@ -283,6 +287,24 @@ func (k Ksmtuned) ToggleMergeAcrossNodes(toggle uint) error {
 		return nil
 	}
 	return k.ksmd.toggleMergeAcrossNodes(k.ctx, toggle)
+}
+
+// ToggleUseZeroPages sets /sys/kernel/mm/ksm/use_zero_pages to toggle (0 or 1).
+// Kernels without use_zero_pages are only an error when toggle is 1.
+func (k Ksmtuned) ToggleUseZeroPages(toggle uint) error {
+	useZeroPagesLocker.Lock()
+	defer useZeroPagesLocker.Unlock()
+	cur, err := k.ksmd.getUseZeroPages()
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) && toggle == 0 {
+			return nil
+		}
+		return fmt.Errorf("failed to read %s: %w", UseZeroPagesPath, err)
+	}
+	if cur == uint64(toggle) {
+		return nil
+	}
+	return k.ksmd.setUseZeroPages(toggle)
 }
 
 func totalMemory() (uint64, error) {

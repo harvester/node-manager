@@ -71,6 +71,14 @@ type KsmtunedSpec struct {
 	// +kubebuilder:validation:Maximum=1
 	MergeAcrossNodes uint `json:"mergeAcrossNodes"`
 
+	// UseZeroPages sets /sys/kernel/mm/ksm/use_zero_pages. When 1, KSM maps
+	// empty (zero-filled) pages to the kernel zero page instead of a shared KSM
+	// page, which avoids a hot shared page and is accounted in status.zeroPages.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=1
+	// +optional
+	UseZeroPages uint `json:"useZeroPages,omitempty"`
+
 	KsmtunedParameters KsmtunedParameters `json:"ksmtunedParameters"`
 }
 
@@ -95,6 +103,11 @@ type KsmtunedStatus struct {
 
 	// number of duplicated KSM pages
 	StableNodeDups uint64 `json:"stableNodeDups"`
+
+	// how many empty pages are mapped to the kernel zero page by KSM
+	// (only counted when useZeroPages is 1; 0 on kernels without ksm_zero_pages)
+	// +optional
+	ZeroPages uint64 `json:"zeroPages,omitempty"`
 
 	// ksmd status
 	// +kubebuilder:validation:Enum=Stopped;Running;Pruned

@@ -87,6 +87,11 @@ func (c *Controller) OnChange(key string, kt *ksmtunedv1.Ksmtuned) (*ksmtunedv1.
 		return kt, err
 	}
 
+	// process use zero pages changed
+	if err := c.Ksmtuned.ToggleUseZeroPages(kt.Spec.UseZeroPages); err != nil {
+		return kt, err
+	}
+
 	var (
 		parameters ksmtunedv1.KsmtunedParameters
 		ok         bool
